@@ -1,2 +1,3 @@
 # Scales
 Scales and Ticketing Web Site
+This is the first pass at trying to use git hub for my projects.  I will need to put this is private mode for future references...
