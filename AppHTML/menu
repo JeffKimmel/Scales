@@ -1,0 +1,12 @@
+"<ul class='nav nav-list'>
+  <li class='active'><a data-ServerOnClick='open' data-OnClickParam='Home'><i class=icon-dashboad'><span class='menu-text'>Home</span></i></a><li>
+   <li>
+                 <a class='dropdown-toggle'>
+                   <i class='icon-desktop'>
+                         <span class='menu-text'>Setup<b class='arrow icon-angle-down'></b></span></i></a>
+                <ul class='submenu'>
+                        <li><a data-ServerOnClick='open' data-OnClickParam='setupEquipmnet'><i class='icon-double-angle-right></i>  Equipment</a></li>
+                        <li><a data-ServerOnClick='open' data-OnClickParam='setupLocation'><i class='icon-double-angle-right></i>  Location</a></li>
+                </ul>
+        </li>
+<ul>"
