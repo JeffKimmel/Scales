@@ -1,0 +1,1289 @@
+
+// MAO 07/23/2013   (OT12591)   Added Group Account Management functionality
+// KC 08/01/2013    (OT12591)   Fixed alignment and style of group account mgmt display
+// KC 08/01/2013    (OT12717)   Adding User Account Management functionality
+// KC 08/26/2013    (OT13052)   Fixed Group Administration to use company permissions
+// KC 08/27/2013    (OT12591)   Added missing logic to prevent groups from being deleted when they contain users
+// MAO 09/06/2013   (OT13161)   Fixed an issue when adding groups.
+// MAO 09/11/2013   (OT13217)   Modified Group administration to show only features that company is registered for
+
+Use cWebModalDialog
+Use cWebPanel.pkg
+Use cWebButton.pkg
+Use cWebForm.pkg
+Use cWebCardContainer.pkg
+Use cWebCard.pkg
+Use cWebLabel.pkg
+Use cWebDurationCombo.pkg
+Use cSpanRowWebCheckbox.pkg
+Use cReportController.pkg
+//Use WebAppUserDialog.wo
+
+//Use cDashBoardsDataDictionary.dd
+//Use cUserGroupDataDictionary.dd
+Use cWebAppUserDataDictionary.dd
+//Open Reports
+
+Register_Object oGPSCard
+Register_Object oHeavyJobCard
+Register_Object oGeneralCard
+Register_Object oTicketCard
+Register_Object oMessagingCard
+Register_Object oDriveLogCard
+Register_Object oGroupAdminCard
+Register_Object oUserAdminCard
+
+
+Struct ptReports
+    String ReportName
+    String ReportURL
+End_Struct
+
+Use HJReportWebCombo.pkg
+Use cWebCheckBox.pkg
+Use cWebCombo.pkg
+//Use cWSCredentials.pkg
+Use cWebRadio.pkg
+
+Object oSettings is a cWebModalDialog
+    Set pbShowClose to False
+    Set psCSSClass to "settingsDialog"
+    
+    ptReports[] HJReports
+
+
+     { WebProperty = True}
+    Property String psInitialView
+
+    { WebProperty = True}
+    Property Boolean bSaved
+
+    { WebProperty = True}
+    Property Integer pDriverRows
+
+    { WebProperty = True}
+    Property Integer piHeavyJobRows
+
+    { WebProperty = True}
+    Property Integer piDriveLogRows
+
+    { WebProperty = True}
+    Property Integer piGPSRows
+
+    { WebProperty = True}
+    Property Integer piTicketRows
+    
+    { WebProperty = True}
+    Property Integer piRefreshRate
+    
+    {WebProperty = True}
+    Property Boolean pbIsDMExpanded
+
+    Set piMinWidth to 500
+    Set piHeight to 400
+    Set piWidth to 1000
+    Set pbServerOnShow to True
+
+//    Object oDashboardDD is a cDashBoardsDataDictionary
+//    End_Object
+    
+//    Object oUserGroup_DD is a cUserGroupDataDictionary
+//        Procedure Constrain
+//            Constrain UserGroup as ( Trim(UserGroup.Company_GUID) = (psCompanyGuid(ghoWebSessionManager)))
+//        End_Procedure        
+//        
+//        Function Validate_Save Returns Integer
+//            Integer iError
+//            If (Trim(UserGroup.Group) = "")  Begin
+//               Move 1 to iError               
+//            End
+//            Else Forward Get Validate_Save to iError
+//            Function_Return iError
+//        End_Function
+//        
+//    End_Object
+    
+    Object oWebAppUser_DD is a cWebAppUserDataDictionary     
+          Procedure Constrain
+//            Constrain WebAppUser as ( Trim(WebAppUser.Company_GUID) = (psCompanyGuid(ghoWebSessionManager)))
+        End_Procedure
+    End_Object
+
+//   Object oWSCredentials is a cWSCredentials
+//   End_Object
+
+    Procedure showOptions Handle thisHandle
+        Send Show of thisHandle
+        //WebSet psCSSClass of lnkGeneral to "settingsLink"
+//        WebSet psCSSClass of lnkGPS to "settingsLink"
+//        WebSet psCSSClass of lnkHeavyJob to "settingsLink"
+        WebSet psCSSClass of lnkTickets to "settingsLink"
+//        WebSet psCSSClass of lnkMsg to "settingsLink"
+//        WebSet psCSSClass of lnkDriveLog to "settingsLink"
+//        WebSet psCSSClass of lnkGroupAdmin to "settingsLink"
+//        WebSet psCSSClass of lnkUserAdmin to "settingsLink"
+        WebSet pbRender   of (oBottomPanel(oRight)) to True 
+    End_Procedure
+
+    Procedure OnShow
+        String initialView
+        Boolean bISDMExpanded
+        
+        Send defaultRow to  oTicketRow1Controller
+        Send defaultRow to  oTicketRow2Controller
+        Send defaultRow to  oTicketRow3Controller
+        Send defaultRow to  oTicketRow4Controller
+        Send defaultRow to  oTicketRow5Controller
+        Send defaultRow to  oTicketRow6Controller
+        Send defaultRow to  oTicketRow7Controller
+        Send defaultRow to  oTicketRow8Controller
+        Send defaultRow to  oTicketRow9Controller
+        Send defaultRow to  oTicketRow10Controller
+        
+        
+        WebGet psInitialView to initialView
+        //Send OnClick of lnkTickets
+        
+        WebGet pbIsDMExpanded to bISDMExpanded
+//        Send SelectRadio of oMessagingCard bISDMExpanded 
+    End_Procedure
+
+    Object oMenu is a cWebPanel
+        Set piColumnCount to 1
+        Set peRegion to prLeft
+        Set psBackgroundColor to "#e1e1e1"
+        Set piWidth to 150
+        Set psCSSClass to "settingsLeftPanel"
+
+        Object lnkTickets is a cWebButton
+            Set psCaption to "Scale Tickets"
+            Set psCSSClass to "settingsLink"
+
+            Procedure OnClick
+                Send showOptions oTicketCard
+                WebSet psCSSClass to "settingsLinkSelected"                
+            End_Procedure
+            
+        End_Object
+            
+//        Object lnkGeneral is a cWebButton
+//            Set psCaption to "General"
+//            Set psCSSClass to "settingsLink"
+//
+//            Procedure OnClick
+//                Send showOptions oGeneralCard
+//                WebSet psCSSClass to "settingsLinkSelected"
+//            End_Procedure
+//        End_Object
+    End_Object
+  
+
+    Object oRight is a cWebPanel
+        Set piColumnCount to 10
+        Set peRegion to prCenter         
+
+        Object oTopPanel is a cWebPanel
+            Set piColumnCount to 6
+            Set psBackgroundColor to "#f0f0f0"
+            
+            Object oCardContainer is a cWebCardContainer
+                Set pbFillHeight to True  //This needs to be set for the carf to take up the entire middle section...
+                                
+                Object oTicketCard is a cWebCard
+                    Set psBackgroundColor to "#f0f0f0"
+                    Set piColumnCount to 10
+
+                    Object oWebLabel1 is a cWebLabel
+                        Set psCaption to "Settings - Scale Tickets"
+                        Set psCSSClass to "settingsHeader"
+                        Set piColumnIndex to 0
+                        Set piColumnSpan to 10
+                    End_Object
+                    
+                    Object oSpacer1 is a cWebSpacer
+                        Set piColumnIndex to 0
+                        Set piColumnSpan to 10
+                        Set piHeight to 10
+                        Set psBackgroundColor to "#f0f0f0"
+                    End_Object
+                    
+                    Procedure ShowOneTicketRow Integer iCol1Report Integer iCol1Duration Integer iCol2Report Integer iCol2Duration Integer ispanRowObj Boolean bShowRow 
+                        Boolean bShowColumn2
+                        WebSet pbRender of iCol1Report to bshowRow                        
+                        WebSet pbRender of iSpanRowObj to bshowRow                        
+                        WebSet pbRender of iCol1Duration to bshowRow                        
+                        If (bshowRow) Begin
+                            WebGet psValue of iSpanRowObj to bshowColumn2
+                            Move (not(bshowColumn2)) to bshowColumn2
+                        End
+                        Else Move False to bShowColumn2
+                        WebSet pbRender of iCol2Report to bshowColumn2
+                        WebSet pbRender of iCol2Duration to bshowColumn2
+                    End_Procedure
+
+                    Procedure ShowTicketRows Integer iRows
+                        Boolean bshowRow
+                        Move True to bshowRow
+
+                        If  (iRows lt 1) Move False to bshowRow
+                        Send ShowOneTicketRow (oCmbTicketRow1Col1) (oCmbTicketRow1Col1Duration) (oCmbTicketRow1Col2) (oCmbTicketRow1Col2Duration) (ochkTicketRow1Col1Span) bshowRow
+
+                        If  (iRows lt 2) Move False to bshowRow
+                        Send ShowOneTicketRow (oCmbTicketRow2Col1) (oCmbTicketRow2Col1Duration) (oCmbTicketRow2Col2) (oCmbTicketRow2Col2Duration) (ochkTicketRow2Col1Span) bshowRow
+
+                        If  (iRows lt 3) Move False to bshowRow
+                        Send ShowOneTicketRow (oCmbTicketRow3Col1) (oCmbTicketRow3Col1Duration) (oCmbTicketRow3Col2) (oCmbTicketRow3Col2Duration) (ochkTicketRow3Col1Span) bshowRow
+
+                        If  (iRows lt 4) Move False to bshowRow
+                        Send ShowOneTicketRow (oCmbTicketRow4Col1) (oCmbTicketRow4Col1Duration) (oCmbTicketRow4Col2) (oCmbTicketRow4Col2Duration) (ochkTicketRow4Col1Span) bshowRow
+
+                        If  (iRows lt 5) Move False to bshowRow
+                        Send ShowOneTicketRow (oCmbTicketRow5Col1) (oCmbTicketRow5Col1Duration) (oCmbTicketRow5Col2) (oCmbTicketRow5Col2Duration) (ochkTicketRow5Col1Span) bshowRow
+
+                        If  (iRows lt 6) Move False to bshowRow
+                        Send ShowOneTicketRow (oCmbTicketRow6Col1) (oCmbTicketRow6Col1Duration) (oCmbTicketRow6Col2) (oCmbTicketRow6Col2Duration) (ochkTicketRow6Col1Span) bshowRow
+
+                        If  (iRows lt 7) Move False to bshowRow
+                        Send ShowOneTicketRow (oCmbTicketRow7Col1) (oCmbTicketRow7Col1Duration) (oCmbTicketRow7Col2) (oCmbTicketRow7Col2Duration) (ochkTicketRow7Col1Span) bshowRow
+
+                        If  (iRows lt 8) Move False to bshowRow
+                        Send ShowOneTicketRow (oCmbTicketRow8Col1) (oCmbTicketRow8Col1Duration) (oCmbTicketRow8Col2) (oCmbTicketRow8Col2Duration) (ochkTicketRow8Col1Span) bshowRow
+
+                        If  (iRows lt 9) Move False to bshowRow
+                        Send ShowOneTicketRow (oCmbTicketRow9Col1) (oCmbTicketRow9Col1Duration) (oCmbTicketRow9Col2) (oCmbTicketRow9Col2Duration) (ochkTicketRow9Col1Span) bshowRow
+
+                        If  (iRows lt 10) Move False to bshowRow
+                        Send ShowOneTicketRow (oCmbTicketRow10Col1) (oCmbTicketRow10Col1Duration) (oCmbTicketRow10Col2) (oCmbTicketRow10Col2Duration) (ochkTicketRow10Col1Span) bshowRow
+                    End_Procedure
+
+                    Object oCmbTicketRows is a cWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 0
+                        Set piLabelOffset to 120
+                        Set psLabel to "Number of Rows:"
+                        Set psValue to 2
+                        Set pbServerOnChange to True
+
+                        Procedure OnFill
+                            Integer i
+                            Forward Send OnFill
+                            For i from 1 to 10
+                                Send AddComboItem i i
+                            Loop
+                        End_Procedure
+
+                        Procedure OnChange
+                            Integer iNumRows
+                            Forward Send OnChange
+                            WebGet psValue to iNumRows
+                            Send ShowTicketRows of oTicketCard iNumRows
+                        End_Procedure
+                    End_Object
+
+                    Object oRowSpanLabel is a cWebLabel
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 9
+                        Set psCaption to "1 pod per row"
+                    End_Object    
+                    
+                    Object oHJSpacer1 is a cWebSpacer
+                        Set piColumnIndex to 0
+                        Set piColumnSpan to 10
+                        Set piHeight to 10
+                        Set psBackgroundColor to "#f0f0f0"
+                    End_Object
+                    //****************Row 1*****************
+                    
+                    Object oTicketRow1Controller is a cReportController
+                            Set piRow to 1
+                            Set psReportType to "Ticket"
+                    End_Object
+                    
+                    Object oCmbTicketRow1Col1 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 0
+                        Set piLabelOffset to 2
+                        Set piRow to 1
+                        Set piColumn to 1
+                        Set psReportType to "Ticket"
+                        Set piCol1Report of oTicketRow1Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure 
+                    End_Object
+
+                    Object oCmbTicketRow1Col1Duration is a cWebDurationCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 3
+                        Set piReportCombo to oCmbTicketRow1Col1
+                        Set piCol1Duration of oTicketRow1Controller to Self
+                    End_Object
+                    
+                    Object oCmbTicketRow1Col2 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 4
+                        Set piLabelOffset to 2
+                        Set piRow to 1
+                        Set piColumn to 2
+                        Set psReportType to "Ticket"
+                        Set piCol2Report of oTicketRow1Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow1Col2Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 7
+                        Set piLabelOffset to 2
+                        Set piCol2Duration of oTicketRow1Controller to Self                        
+                        
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object ochkTicketRow1Col1Span is a cSpanRowWebCheckbox
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 9
+                        Set piLabelOffset to 20
+                        Set piCol1SpanRow of oTicketRow1Controller to Self
+                        
+                        Procedure OnChange
+                            Send spanRowChanged of oTicketRow1Controller
+                        End_Procedure
+                    End_Object
+
+                    //****************Row 2*****************
+                    Object oTicketRow2Controller is a cReportController
+                            Set piRow to 2
+                            Set psReportType to "Ticket"
+                    End_Object
+                    Object oCmbTicketRow2Col1 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 0
+                        Set piLabelOffset to 2
+                        Set piRow to 2
+                        Set piColumn to 1
+                        Set psReportType to "Ticket"
+                        Set piCol1Report of oTicketRow2Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow2Col1Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 3
+                        Set piLabelOffset to 2
+                        Set piCol1Duration of oTicketRow2Controller to Self
+                        
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow2Col2 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 4
+                        Set piLabelOffset to 2
+                        Set piRow to 2
+                        Set piColumn to 2
+                        Set psReportType to "Ticket"
+                        Set piCol2Report of oTicketRow2Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow2Col2Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 7
+                        Set piLabelOffset to 2
+                        Set piCol2Duration of oTicketRow2Controller to Self                        
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object ochkTicketRow2Col1Span is a cSpanRowWebCheckbox
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 9
+                        Set piLabelOffset to 30
+                        Set piCol1SpanRow of oTicketRow2Controller to Self                        
+                        Procedure OnChange
+                            Send spanRowChanged of oTicketRow2Controller
+                        End_Procedure                        
+                    End_Object
+
+                    //****************Row 3*****************
+                    Object oTicketRow3Controller is a cReportController
+                            Set piRow to 3
+                            Set psReportType to "Ticket"
+                    End_Object
+                    Object oCmbTicketRow3Col1 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 0
+                        Set piLabelOffset to 2
+                        Set piRow to 3
+                        Set piColumn to 1
+                        Set psReportType to "Ticket"
+                        Set piCol1Report of oTicketRow3Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow3Col1Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 3
+                        Set piLabelOffset to 2
+                        Set piCol1Duration of oTicketRow3Controller to Self
+                        
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow3Col2 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 4
+                        Set piLabelOffset to 2
+                        Set piRow to 3
+                        Set piColumn to 2
+                        Set psReportType to "Ticket"
+                        Set piCol2Report of oTicketRow3Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow3Col2Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 7
+                        Set piLabelOffset to 2
+                        Set piCol2Duration of oTicketRow3Controller to Self                        
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+                    
+                    Object ochkTicketRow3Col1Span is a cSpanRowWebCheckbox
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 9
+                        Set piLabelOffset to 40                        
+                        Set piCol1SpanRow of oTicketRow3Controller to Self
+                        Procedure OnChange
+                            Send spanRowChanged of oTicketRow3Controller
+                        End_Procedure                        
+                    End_Object
+
+                    //****************Row 4*****************
+                    Object oTicketRow4Controller is a cReportController
+                            Set piRow to 4
+                            Set psReportType to "Ticket"
+                    End_Object
+                    Object oCmbTicketRow4Col1 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 0
+                        Set piLabelOffset to 2
+                        Set piRow to 4
+                        Set piColumn to 1
+                        Set psReportType to "Ticket"
+                        Set piCol1Report of oTicketRow4Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow4Col1Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 3
+                        Set piLabelOffset to 2
+                        Set piCol1Duration of oTicketRow4Controller to Self
+                        
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow4Col2 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 4
+                        Set piLabelOffset to 2
+                        Set piRow to 4
+                        Set piColumn to 2
+                        Set psReportType to "Ticket"
+                        Set piCol2Report of oTicketRow4Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow4Col2Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 7
+                        Set piLabelOffset to 2
+                        Set piCol2Duration of oTicketRow4Controller to Self                        
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object ochkTicketRow4Col1Span is a cSpanRowWebCheckbox
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 9
+                        Set piLabelOffset to 50
+                        Set piCol1SpanRow of oTicketRow4Controller to Self                        
+                        Procedure OnChange
+                            Send spanRowChanged of oTicketRow4Controller
+                        End_Procedure                        
+                        
+                    End_Object
+
+                    //****************Row 5*****************
+                    Object oTicketRow5Controller is a cReportController
+                            Set piRow to 5
+                            Set psReportType to "Ticket"
+                    End_Object
+
+                    Object oCmbTicketRow5Col1 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 0
+                        Set piLabelOffset to 2
+                        Set piRow to 5
+                        Set piColumn to 1
+                        Set psReportType to "Ticket"
+                        Set piCol1Report of oTicketRow5Controller to Self
+                        
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow5Col1Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 3
+                        Set piLabelOffset to 2
+                        Set piCol1Duration of oTicketRow5Controller to Self
+                        
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+                    
+                    Object oCmbTicketRow5Col2 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 4
+                        Set piLabelOffset to 2
+                        Set piRow to 5
+                        Set piColumn to 2
+                        Set psReportType to "Ticket"
+                        Set piCol2Report of oTicketRow5Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow5Col2Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 7
+                        Set piLabelOffset to 2
+                        Set piCol2Duration of oTicketRow5Controller to Self                        
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object ochkTicketRow5Col1Span is a cSpanRowWebCheckbox
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 9
+                        Set piLabelOffset to 20                        
+                        Set piCol1SpanRow of oTicketRow5Controller to Self
+                        Procedure OnChange
+                            Send spanRowChanged of oTicketRow5Controller
+                        End_Procedure                        
+                    End_Object
+
+                    //****************Row 6*****************
+                    Object oTicketRow6Controller is a cReportController
+                            Set piRow to 6
+                            Set psReportType to "Ticket"
+                    End_Object
+                    Object oCmbTicketRow6Col1 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 0
+                        Set piLabelOffset to 2
+                        Set piRow to 6
+                        Set piColumn to 1
+                        Set psReportType to "Ticket"
+                        Set piCol1Report of oTicketRow6Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe                            
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow6Col1Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 3
+                        Set piLabelOffset to 2
+                        Set pbServerOnChange to True
+                        Set piCol1Duration of oTicketRow6Controller to Self
+                        
+                        Procedure OnFill
+                            String sVal
+                            Integer iSpanRow
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                        
+                        Procedure OnChange
+                            //String sVal
+                           //WebGet psValue to sVal
+                           //WebSet psReportDuration of oCmbTicketRow6Col1  to sVal
+                        End_Procedure                        
+                        
+                    End_Object
+
+
+                    Object oCmbTicketRow6Col2 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 4
+                        Set piLabelOffset to 2
+                        Set piRow to 6
+                        Set piColumn to 2
+                        Set psReportType to "Ticket"
+                        Set piCol2Report of oTicketRow6Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow6Col2Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 7
+                        Set piLabelOffset to 2
+                        Set piCol2Duration of oTicketRow6Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object ochkTicketRow6Col1Span is a cSpanRowWebCheckbox
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 9
+                        Set piCol1SpanRow of oTicketRow6Controller to Self                        
+                        Procedure OnChange
+                            Send spanRowChanged of oTicketRow6Controller
+                        End_Procedure                        
+                    End_Object
+                    
+
+                    //****************Row 7*****************
+                    Object oTicketRow7Controller is a cReportController
+                            Set piRow to 7
+                            Set psReportType to "Ticket"
+                    End_Object
+                    Object oCmbTicketRow7Col1 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 0
+                        Set piLabelOffset to 2
+                        Set piRow to 7
+                        Set piColumn to 1
+                        Set psReportType to "Ticket"
+                        Set piCol1Report of oTicketRow7Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow7Col1Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 3
+                        Set piLabelOffset to 2
+                        Set piCol1Duration of oTicketRow7Controller to Self
+                        
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow7Col2 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 4
+                        Set piLabelOffset to 2
+                        Set piRow to 7
+                        Set piColumn to 2
+                        Set psReportType to "Ticket"
+                        Set piCol2Report of oTicketRow7Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow7Col2Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 7
+                        Set piLabelOffset to 2
+                        Set piCol2Duration of oTicketRow7Controller to Self                        
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object ochkTicketRow7Col1Span is a cSpanRowWebCheckbox
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 9
+                        Set piLabelOffset to 80
+                        Set piCol1SpanRow of oTicketRow7Controller to Self                        
+                        Procedure OnChange
+                            Send spanRowChanged of oTicketRow7Controller
+                        End_Procedure                        
+                    End_Object
+
+                    //****************Row 8*****************
+                    Object oTicketRow8Controller is a cReportController
+                            Set piRow to 8
+                            Set psReportType to "Ticket"
+                    End_Object
+                    Object oCmbTicketRow8Col1 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 0
+                        Set piLabelOffset to 2
+                        Set piRow to 8
+                        Set piColumn to 1
+                        Set psReportType to "Ticket"
+                        Set piCol1Report of oTicketRow8Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow8Col1Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 3
+                        Set piLabelOffset to 2
+                        Set piCol1Duration of oTicketRow8Controller to Self
+                        
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow8Col2 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 4
+                        Set piLabelOffset to 2
+                        Set piRow to 8
+                        Set piColumn to 2
+                        Set psReportType to "Ticket"
+                        Set piCol2Report of oTicketRow8Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow8Col2Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 7
+                        Set piLabelOffset to 2
+                        Set piCol2Duration of oTicketRow8Controller to Self                        
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object ochkTicketRow8Col1Span is a cSpanRowWebCheckbox
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 9
+                        Set piLabelOffset to 90
+                        Set piCol1SpanRow of oTicketRow8Controller to Self                        
+                        Procedure OnChange
+                            Send spanRowChanged of oTicketRow8Controller
+                        End_Procedure                        
+                    End_Object
+
+                    //****************Row 9*****************
+                    Object oTicketRow9Controller is a cReportController
+                            Set piRow to 9
+                            Set psReportType to "Ticket"
+                    End_Object
+                    
+                    Object oCmbTicketRow9Col1 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 0
+                        Set piLabelOffset to 2
+                        Set piRow to 9
+                        Set piColumn to 1
+                        Set psReportType to "Ticket"
+                        Set piCol1Report of oTicketRow9Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow9Col1Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 3
+                        Set piLabelOffset to 2
+                        Set pbServerOnChange to True
+                        Set piCol1Duration of oTicketRow9Controller to Self
+                        
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"                            
+                        End_Procedure                        
+                    End_Object
+
+                    Object oCmbTicketRow9Col2 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 4
+                        Set piLabelOffset to 2
+                        Set piRow to 9
+                        Set piColumn to 2
+                        Set psReportType to "Ticket"
+                        Set piCol2Report of oTicketRow9Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow9Col2Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 7
+                        Set piLabelOffset to 2
+                        Set piCol2Duration of oTicketRow9Controller to Self                        
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object ochkTicketRow9Col1Span is a cSpanRowWebCheckbox
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 9
+                        Set piLabelOffset to 100
+                        Set piCol1SpanRow of oTicketRow9Controller to Self
+                        Procedure OnChange
+                            Send spanRowChanged of oTicketRow9Controller
+                        End_Procedure                        
+                    End_Object
+
+                    //****************Row 10*****************
+                    Object oTicketRow10Controller is a cReportController
+                            Set piRow to 10
+                            Set psReportType to "Ticket"
+                    End_Object
+                    Object oCmbTicketRow10Col1 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 0
+                        Set piLabelOffset to 2
+                        Set piRow to 10
+                        Set piColumn to 1
+                        Set psReportType to "Ticket"
+                        Set piCol1Report of oTicketRow10Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow10Col1Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 3
+                        Set piLabelOffset to 2
+                        Set piCol1Duration of oTicketRow10Controller to Self
+                        
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow10Col2 is a HJReportWebCombo
+                        Set piColumnSpan to 3
+                        Set piColumnIndex to 4
+                        Set piLabelOffset to 2
+                        Set piRow to 10
+                        Set piColumn to 2
+                        Set psReportType to "Ticket"
+                        Set piCol2Report of oTicketRow10Controller to Self
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send FillMe
+                        End_Procedure
+                    End_Object
+
+                    Object oCmbTicketRow10Col2Duration is a cWebCombo
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 7
+                        Set piLabelOffset to 2
+                        Set piCol2Duration of oTicketRow10Controller to Self                        
+
+                        Procedure OnFill
+                            Forward Send OnFill
+                            Send AddComboItem "Day" "Day"
+                            Send AddComboItem "Week" "Week"
+                            Send AddComboItem "Month" "Month"
+                        End_Procedure
+                    End_Object
+
+                    Object ochkTicketRow10Col1Span is a cSpanRowWebCheckbox
+                        Set piColumnSpan to 1
+                        Set piColumnIndex to 9
+                        Set piLabelOffset to 120                        
+                        Set piCol1SpanRow of oTicketRow10Controller to Self
+                        Procedure OnChange
+                            Send spanRowChanged of oTicketRow10Controller
+                        End_Procedure                        
+                    End_Object
+                    
+                    
+                    
+                End_Object    
+
+                Object oGeneralCard is a cWebCard
+                    Set psBackgroundColor to "#f0f0f0"
+                    Set piColumnCount to 10
+                    Object oWebLabel1 is a cWebLabel
+                        Set psCaption to "Settings - General"
+                        Set psCSSClass to "settingsHeader"
+                        Set piColumnIndex to 0
+                        Set piColumnSpan to 10
+                    End_Object
+                    
+                    Object oHJSpacer1 is a cWebSpacer
+                        Set piColumnIndex to 0
+                        Set piColumnSpan to 10
+                        Set piHeight to 10
+                        Set psBackgroundColor to "#f0f0f0"
+                    End_Object
+
+//                    Object oCmbDefaultView is a cWebCombo
+//                        Set piColumnSpan to 5
+//                        Set piColumnIndex to 0
+//                        Set piLabelOffset to 120
+//                        Set psLabel to "Default Start Page:"
+//                        Set psValue to "HeavyJob"
+//
+//                        Procedure OnFill
+//                            Integer i
+//                            Forward Send OnFill
+//                            Send AddComboItem "Driver Messaging" "Driver Messaging"
+//                            Send AddComboItem "Drive Log" "Drive Log"
+//                            Send AddComboItem "GPS" "GPS"
+//                            Send AddComboItem "---GPS Dashboard" "---GPS Dashboard"
+//                            Send AddComboItem "---Idle vs. Work, by Group" "---Idle vs. Work, by Group"
+//                            Send AddComboItem "---Idle vs. Work, by Job" "---Idle vs. Work, by Job"
+//                            Send AddComboItem "---Idle vs. Work, by Type" "---Idle vs. Work, by Type"
+//                            Send AddComboItem "---Fuel Consumption, by Type" "---Fuel Consumption, by Type"
+//                            Send AddComboItem "HeavyJob" "HeavyJob"
+//                            Send AddComboItem "Scale Tickets" "Scale Tickets"
+//                            Send AddComboItem "Explore More Dashboards" "Explore More Dashboards"
+//                        End_Procedure
+//                    End_Object
+//                    
+                    Object oCmbRefreshViews is a cWebCombo
+                        Set piColumnSpan to 5
+                        Set piColumnIndex to 0
+                        Set piLabelOffset to 200
+                        Set psLabel to "Refresh (in minutes):"                        
+
+                        Procedure OnFill
+                            Integer i
+                            Forward Send OnFill
+                            For i from 1 to 30
+                                Send AddComboItem i i
+                            Loop
+                        End_Procedure
+                     End_Object
+
+                End_Object  //oGeneralCard
+            End_Object
+        End_Object
+                
+        
+        Object oBottomPanel is a cWebPanel
+            Set piColumnCount to 6
+            Set peRegion to prBottom
+            Set psBackgroundColor to "#f0f0f0"
+
+            Object oOkButton is a cWebButton
+                Set psCaption to "Save"
+                Set piColumnSpan to 1
+                Set piColumnIndex to 4
+                //Set psBackgroundColor to "#00AC00"
+                //Set psCSSClass to "settingsSaveButton"
+
+                Procedure OnClick
+                    Send Ok
+                End_Procedure
+
+            End_Object
+
+            Object oCancelButton is a cWebButton
+                Set psCaption to C_$Cancel
+                Set piColumnSpan to 1
+                Set piColumnIndex to 5
+                Set psBackgroundColor to "#00AC00"
+                Set psCSSClass to "linkLabel"
+
+                Procedure OnClick
+                    Send Cancel
+                End_Procedure
+
+            End_Object
+
+        End_Object
+    End_Object
+
+    Procedure OnSubmit
+        Send Ok
+
+
+    End_Procedure
+
+    Procedure Ok
+//        String sDriverRows sDefaultView
+        Integer    iTicketRows iRefresh
+        String sUserGUID
+//        Boolean bDMExpanded
+//        //  Do some calculations / saves / validations here ..
+//        WebGet psValue of oCmbDriverRows to sDriverRows
+//        WebGet psValue of oDMExpanded to bDMExpanded
+//        WebGet psValue of oCmbHeavyJobRows to iHeavyJobRows
+//        WebGet psValue of oCmbDriveLogRows to  iDriveLogRows
+//        WebGet psValue of oCmbGPSRows to iGPSRows
+//        WebGet psValue of oCmbDefaultView      to sDefaultView
+        WebGet psValue of oCmbTicketRows to iTicketRows
+        Get psUserGUID of ghoWebSessionManager to sUserGUID
+        Send SaveDashboard of oDashboardDD sUserGUID  0 0  "" iTicketRows  "" iTicketRows
+        
+//        WebGet psValue of oCmbRefreshViews   to iRefresh  
+//
+//        Get pSessionUserProfile of ghoWebSessionManager to userProfile
+//
+//        Send SaveDriverMessagingSettings of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId 0 0  sDriverRows bDMExpanded
+//        Send SaveHeavyJobReport of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId 0 0  iHeavyJobRows 0
+//        Send SaveDriveLogReport  of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId 0 0  iDriveLogRows
+//        Send SaveGPSReport           of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId 0 0  iGPSRows 0
+//        Send SaveTicketReport       of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId 0 0  iTicketRows "" 0
+//        Send SaveDefaultView        of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId  sDefaultView iRefresh 0
+//
+//        WebSet pDriverRows to sDriverRows
+//        WebSet piHeavyJobRows to iHeavyJobRows
+//        WebSet piDriveLogRows  to iDriveLogRows
+//        WebSet piGPSRows to iGPSRows
+        WebSet piTicketRows to iTicketRows
+//        WebSet piRefreshRate to iRefresh
+//
+                
+        Send saveRow to  oTicketRow1Controller
+        Send saveRow to  oTicketRow2Controller
+        Send saveRow to  oTicketRow3Controller
+        Send saveRow to  oTicketRow4Controller
+        Send saveRow to  oTicketRow5Controller
+        Send saveRow to  oTicketRow6Controller
+        Send saveRow to  oTicketRow7Controller
+        Send saveRow to  oTicketRow8Controller
+        Send saveRow to  oTicketRow9Controller
+        Send saveRow to  oTicketRow10Controller        
+        
+        WebSet  bSaved to True
+        Forward Send Ok
+    End_Procedure
+
+    Procedure Cancel
+        Forward Send Ok  //Cancel
+    End_Procedure
+
+
+//
+//    //  This is an example of how a dialog is called. You can pass any number of set up parameters
+//    //  which will use WebSet to configure controls or to store the values. Note that you cannot do
+//    //  finds here yet because the DDO structure is not being synchronized with the client yet.
+//    //  Please use the OnShow event for that (you can use web properties to pass on information to
+//    //  the OnShow). We pass on the hReturnObj handle to the Popup method so that the
+//    //  OnCloseModalDialog is executed when the Ok message is send.
+//    Procedure PopupTheDialog  Handle hReturnObj String sSetupParameter1 String sSetupParameter2
+//        // Initialize any object properites as needed via WebSet
+//
+//        // Invoke the modal dialog
+//        Send Popup hReturnObj
+//    End_Procedure
+//
+//    //  In the OnShow you would perform any finds needed when opening a modal dialog.
+//    Set pbServerOnShow to True
+//    Procedure OnShow
+//        //  Find your records here
+//    End_Procedure
+//
+//
+//    //  This is an example of a method that would be called by the return object when
+//    //  OnCloseModalDialog is executed. It will use WebGet to get the result values from the
+//    //  controls. It can also use the DDO structure to get values of the record buffer here. If one
+//    //  return value is not enough consider using a Struct or ByRef parameters to return multiple
+//    //  values.
+//    Function DialogResult Returns String
+//        String sResult
+//
+//        //  Get the 'result' of the dialog when needed
+//
+//        Function_Return sResult
+//    End_Function
+//
+
+    Procedure PopupSettings  Handle hReturnObj String initialView
+            WebSet  bSaved to False
+            Integer sDriverRows  iHJRows iCount iDriveLogRows iGPSRows iTicketRows iRefresh
+            String sDefaultView sUserGUID
+            tReportStruct thisReport
+            Boolean bIsAdmin bIsDMExpanded
+            
+            Get psUserGUID of ghoWebSessionManager to sUserGUID
+            
+//            Get pSessionUserProfile of ghoWebSessionManager to userProfile
+//            Get pbIsAdmin of ghoWebSessionManager to bIsAdmin
+//            Get driverName of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId 0 0  to sDriverRows
+//            Get IsBoardExpanded of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId 0 0  to bIsDMExpanded
+//            Get DriveLogDriverName of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId 0 0  to iDriveLogRows
+//            
+//            Get DefaultViewStructure of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId        to thisReport
+//            Move thisReport.Data to  sDefaultView
+//            Move thisReport.reportDuration to iRefresh
+//            If (iRefresh = 0) Move 10 to iRefresh
+//            
+//            Get HeavyJobReport         of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId 0 0  to thisReport
+//            Move thisReport.Data to  iHJRows
+//            
+            Get DashboardData of oDashboardDD sUserGUID 0 0  to thisReport
+            Move thisReport.reportLink to iTicketRows            
+//            
+//            Get GPSReport                   of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId 0 0  to thisReport
+//            Move thisReport.Data to iGPSRows
+//            
+//
+//            Send ShowHeavJobRows of oHeavyJobCard iHJRows
+//            Send ShowGPSRows     of oGPSCard  iGPSRows
+            Send ShowTicketRows  of oTicketCard iTicketRows
+            WebSet psValue of oCmbTicketRows        to iTicketRows   
+//            WebSet psValue of oCmbRefreshViews      to iRefresh  
+//            WebSet pbIsDMExpanded                   to bIsDMExpanded
+//
+//            If (iHJRows < 1) Begin
+//                WebSet pbEnabled of  oCmbHeavyJobRows to False
+//            End
+//            Else Begin
+//                WebSet pbEnabled of  oCmbHeavyJobRows to True
+//            End
+//            WebSet psInitialView to initialView            
+//            
+//            //Only show group and user administrator menu options if  admin
+//            If (bIsAdmin) Begin
+//                Set pbVisible of lnkGroupAdmin to True
+//                Set pbVisible of lnkUserAdmin to True
+//            End 
+//            Else Begin
+//                Set pbVisible of lnkGroupAdmin to False
+//                Set pbVisible of lnkUserAdmin to False
+//            End
+//        
+        Send Popup hReturnObj
+    End_Procedure
+End_Object

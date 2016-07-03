@@ -1,0 +1,28 @@
+Use cWebIFrame.pkg
+
+Class cHJIFrame is a cWebIFrame
+    
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        {WebProperty = true}
+        Property String psInternalURL        
+        Set piHeight to 400      
+        Set piColumnSpan to 10                        
+
+    End_Procedure
+
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+    End_Procedure
+
+                                                            
+    Procedure RefreshMe
+        String sURL
+        WebGet psURL to sURL
+        WebSet psUrl to sURL
+    End_Procedure
+                    
+    Procedure OnLoad
+        Send RefreshMe
+    End_Procedure
+End_Class

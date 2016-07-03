@@ -1,0 +1,37 @@
+Use cWebView.pkg
+Use cWebPanel.pkg
+Use cWebForm.pkg 
+Use cWebSpacer.pkg
+
+Object oSchedule is a cWebView    
+
+    // Your DDO structure will go here
+
+    Object oWebMainPanel is a cWebPanel
+        Set piColumnCount to 20
+        Object oHdrLine is a cWebLabel
+            Set psCaption to "Scheduling"
+            Set psCSSClass to "hdrLabel"
+            Set piColumnSpan to 20
+        End_Object
+
+        Object oWebSpacer1 is a cWebSpacer
+            Set piHeight to 180
+            Set piColumnSpan to 20
+        End_Object
+        
+        // place controls here.
+        // Your view will grow as controls are added
+        
+        Object oLabel is a cWebLabel
+            Set piColumnSpan to 20
+            Set psCaption to "This feature has not been implemented yet."
+            Set psCSSClass to "scheduleWording"
+            Set peAlign to alignCenter
+        End_Object
+        
+        
+        
+    End_Object 
+
+End_Object

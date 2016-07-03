@@ -1,0 +1,489 @@
+Use cWebView.pkg
+Use cWebPanel.pkg
+Use cWebButton.pkg
+Use cWebForm.pkg
+Use cWebLabel.pkg
+Use cWebHtmlBox.pkg
+Use cLocationDataDictionary.dd
+Use cBusinessUnitsDataDictionary.dd
+Use cCompanyDataDictionary.dd
+Use cWebAppUserDataDictionary.dd
+Use cli.pkg
+Use cRFWebForm.pkg
+Use cSuperDataDictionary.dd
+Use cConnectionDataDictionary.dd
+
+Open Truck
+
+Register_Object oFirstName
+
+Object oSettingsLocation is a cWebView    
+    // Your DDO structure will go here
+    Set pbServerOnShow to True
+    Set pbFillHeight to True
+
+    Object oSuperDD is a cSuperDataDictionary
+        Set pbUseDDRelates to True
+    End_Object
+    
+    Object oEmpDD is a cWebAppUserDataDictionary
+        Set pbUseDDRelates to True
+    End_Object
+
+    Object oConnectionDD is a cConnectionDataDictionary
+        Set pbUseDDRelates to True
+    End_Object
+    
+    Object oCompanyDD is a cCompanyDataDictionary
+    End_Object
+    
+    Object oDivisionDD is a cBusinessUnitsDataDictionary
+        Set DDO_Server to oCompanyDD
+        
+        Set pbUseDDRelates to True
+        Set Field_Related_FileField Field BusinessUnits.CompanyId to 0 0
+        
+    End_Object
+    
+    Object oLocationDD is a cLocationDataDictionary    
+        Set DDO_Server to oDivisionDD
+        Set DDO_Server to oEmpDD
+        Set DDO_Server to oSuperDD
+        Set DDO_Server to oConnectionDD
+        
+        Set pbUseDDRelates to True
+        Set Field_Related_FileField Field Location.DivisionID to 0 0
+        
+        //Set Field_Related_FileField Field Location.Super to 0 0
+        Set Field_Related_FileField Field Location.Admin to File_Field WebAppUser.ID
+        Set ParentNullAllowed WebAppUser.File_number to True
+        
+        Set Field_Related_FileField Field Location.Super to File_Field Super.ID
+        //Set ParentNullAllowed Super.File_Number to True
+        
+        Set Field_Related_FileField Field Location.CustomerID to File_Field Connection.ID
+        
+        Procedure OnConstrain
+            String sCompGUID sBUGUID sConstraint
+            Get psCompanyGUID of ghoWebSessionManager to sCompGUID
+            Get psBusinessUnitGUID of ghoWebSessionManager to sBUGUID
+            Constrain Location.DivisionID eq  sBUGUID
+            Constrain Location.Active eq 1
+        End_Procedure         
+        
+        Procedure Save_Main_File
+            String sFirst sLast sSuperFirst sSuperLast sCustomer
+            WebGet psValue of oCustomerCode to sCustomer
+            WebGet psValue of oEmpFirst     to sFirst 
+            WebGet psValue of oSuperFirst   to sSuperFirst 
+            
+            If (trim(sCustomer) = "") Begin
+                Send Clear_Main_File to oConnectionDD
+                Move "00000000-0000-0000-0000-000000000000" to Location.CustomerID
+                Move "" to Location.CustomerAppCode
+            End
+            Else Begin
+                WebGet psValue of oCustomerDesc to sCustomer
+                Move sCustomer to Location.CustomerAppCode
+            End
+            
+            If (trim(sFirst) = "") Begin
+                Send Clear_Main_File of oEmpDD             
+                Move "00000000-0000-0000-0000-000000000000" to Location.Admin
+            End
+            
+            If (trim(sSuperFirst) = "") Begin
+                Send Clear_Main_File of oSuperDD             
+                Move "00000000-0000-0000-0000-000000000000" to Location.Super
+            End
+            
+            Forward Send Save_Main_File            
+        End_Procedure
+        
+        Function FooRequest_Validate_And_Save Returns Boolean           
+            Boolean bSave 
+            String sFirst sLast sSuperFirst sSuperLast sCustomer
+            WebGet psValue of oEmpFirst     to sFirst 
+            WebGet psValue of oEmpLast      to sLast
+            WebGet psValue of oSuperFirst   to sSuperFirst 
+            WebGet psValue of oSuperLast    to sSuperLast
+            WebGet psValue of oCustomerCode to sCustomer
+
+            If ( (trim(sFirst) = "") and (trim(sLast) = "") )Begin
+                Send Clear_Main_File of oEmpDD             
+                Move "00000000-0000-0000-0000-000000000000" to WebAppUser.ID
+                Send Find of oEmpDD EQ 1
+                Set Field_Changed_Value Field Location.Admin to "00000000-0000-0000-0000-000000000000"
+            End
+            Else Begin
+                Set Field_Changed_Value Field Location.Admin to WebAppUser.ID
+            End
+
+            If ( (trim(sSuperFirst) = "") and (trim(sSuperLast) = "") )Begin
+                Send Clear_Main_File of oSuperDD             
+                Move "00000000-0000-0000-0000-000000000000" to Super.ID
+                Send Find of oSuperDD EQ 1
+                Set Field_Changed_Value Field Location.Super to "00000000-0000-0000-0000-000000000000"
+            End
+            Else Begin
+                Set Field_Changed_Value Field Location.Super to WebAppUser.ID
+            End
+            
+//            If (trim(sCustomer) = "") Begin
+//                Send Clear_Main_File of oConnectionDD             
+//                Move "00000000-0000-0000-0000-000000000000" to Connection.ID
+//                Send Find of oConnectionDD EQ 1
+//                Set Field_Changed_Value Field Location.Admin to "00000000-0000-0000-0000-000000000000"
+//            End
+//            Else Begin
+//                //Set Field_Changed_Value Field Location.Admin to WebAppUser.ID
+//            End
+
+            Forward Get Request_Validate_And_Save to bSave
+        End_Function
+    End_Object          
+    
+    Set Main_DD to oLocationDD
+    Set Server  to oLocationDD
+    
+    Object oWebMainPanel is a cWebPanel
+        Set piColumnCount to 4        
+               Set psCSSClass to "noOverFlow"
+ 
+        Object oWebLeftPanel is a cWebPanel
+            Set peRegion to prLeft
+            Set pbResizable to True
+            Set piWidth to 200
+            Set piMinWidth to 200
+            //Set psBackgroundColor to "#FFF"
+            Set psCSSClass to "viewLeft"
+
+    
+            Object oList is a cWebList
+                Set piColumnSpan to 4
+                Set pbFillHeight to True
+                Set Ordering to 3
+                Object oColumn is a cWebColumn
+                    Set psCaption to "Locations"
+                    Entry_Item Location.Code
+                End_Object
+
+                Procedure OnChangeCurrentRow String sFromRowID String sToRowID                
+                    Boolean bEnabled
+                    Forward Send OnChangeCurrentRow sFromRowID sToRowID
+                    WebGet pbEnabled of oCode to bEnabled
+                    If (bEnabled) Begin
+                        Send enableEdit False
+                    End
+                End_Procedure
+            End_Object            
+        End_Object
+
+        Object oWebMainPanel is a cWebPanel
+            Set piColumnCount to 20
+            Set psCSSClass to "viewCenter"
+    
+            Object oHdrLine is a cWebLabel
+                    Set psCaption to "Setup Locations"
+                    Set psCSSClass to "hdrLabel"
+                    Set piColumnSpan to 20
+            End_Object
+
+            Object oCode is a cRFWebForm
+                Set psLabel to "Location Code:"
+                Set piColumnSpan to 6
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item Location.Code
+                Set piLabelOffset to 90
+                Set pbPromptButton to True
+            End_Object
+            
+            Object oDesc is a cRFWebForm
+                Set psLabel to "Desc:"
+                Set piColumnSpan to 7
+                Set piColumnIndex to 6
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item Location.Description
+                Set piLabelOffset to 40
+            End_Object
+            
+            Object oAddress is a cRFWebForm
+                Entry_Item Location.Address
+                Set piColumnSpan to 13
+                Set psLabel to "Address:"                
+                Set piLabelOffset to 90
+                //Set pbRender to False   
+            End_Object
+
+            Object oCity is a cRFWebForm
+                Entry_Item Location.City
+                Set piColumnSpan to 5
+                Set psLabel to "City:"                
+                Set piLabelOffset to 90   
+                //Set pbRender to False   
+            End_Object
+            
+            Object oState is a cRFWebForm
+                Entry_Item Location.State
+                Set piColumnIndex to 6
+                Set piColumnSpan to 2
+                Set psLabel to "State:"                
+                Set piLabelOffset to 40   
+                //Set pbRender to False   
+            End_Object
+  
+            Object oZip is a cRFWebForm
+                Entry_Item Location.Zip
+                Set piColumnIndex to 10
+                Set piColumnSpan to 3
+                Set psLabel to "Zip:"                
+                Set piLabelOffset to 25   
+                //Set pbRender to False   
+            End_Object
+
+            Object oStartDate is a cRFWebDateForm
+                Entry_Item Location.StartDate
+                Set piColumnSpan to 5
+                Set psLabel to "Start Date:"                
+                Set piLabelOffset to 90
+            End_Object
+
+            Object oEndDate is a cRFWebDateForm
+                Entry_Item Location.EndDate
+                Set piColumnIndex to 8
+                Set piColumnSpan to 5
+                Set psLabel to "End Date:"                
+                Set piLabelOffset to 90                
+            End_Object
+
+            Object oRFIDTag is a cRFWebForm
+                Entry_Item Location.RFIDTag
+                Set piColumnSpan to 13
+                Set psLabel to "Tag:"                
+                Set piLabelOffset to 90   
+            End_Object
+            
+            Object oEmpFirst is a cRFWebForm
+                Set psLabel to "Field Admin:"
+                Set piColumnSpan to 6
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item WebAppUser.FirstName
+                Set piLabelOffset to 90
+                Set pbPromptButton to True
+            End_Object
+            
+            Object oEmpLast is a cWebForm
+                Set psLabel to ""
+                Set piColumnSpan to 7
+                Set piColumnIndex to 6
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item WebAppUser.LastName
+                Set piLabelOffset to 40
+                Set pbEnabled to False
+            End_Object
+
+            Object oSuperFirst is a cRFWebForm
+                Set psLabel to "Super:"
+                Set piColumnSpan to 6
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item Super.FirstName
+                Set piLabelOffset to 90
+            End_Object
+            
+            Object oSuperLast is a cWebForm
+                Set psLabel to ""
+                Set piColumnSpan to 7
+                Set piColumnIndex to 6
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item Super.LastName
+                Set piLabelOffset to 40
+                Set pbEnabled to False
+            End_Object
+            
+            Object oCustomerCode is a cRFWebForm
+                Set psLabel to "Customer:"
+                Set piColumnSpan to 6
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item Connection.ChildAppCode
+                Set piLabelOffset to 90
+                Set pbPromptButton to True
+            End_Object
+            
+            Object oCustomerDesc is a cRFWebForm
+                Set psLabel to ""
+                Set piColumnSpan to 7
+                Set piColumnIndex to 6
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item Connection.ChildName
+                Set piLabelOffset to 40
+            End_Object
+
+//            Object oCustomerTest is a cRFWebForm
+//                Set psLabel to "Customer:"
+//                Set piColumnSpan to 6
+//                Set peLabelAlign to alignLeft
+//                Set peLabelPosition to lpLeft
+//                Entry_Item Location.CustomerID
+//                Set piLabelOffset to 90
+//                Set pbPromptButton to True
+//            End_Object
+                                                                                             
+            Object oSpacer is a cWebSpacer
+                Set pbFillHeight to True
+                Set psCSSClass to "setupSpacer"
+            End_Object
+
+            Object oAddSaveBtn is a cWebButton
+                Set psCaption to "Add Location"
+                Set piColumnSpan to 4    
+                
+                Procedure OnClick
+                    String sLabel
+                    Boolean bHasRecord bErr
+                    WebGet psCaption to sLabel
+                    If (sLabel = "Add Location") Begin
+                        Send Request_Clear to (Server(Self))
+                        Send EnableEdit True
+                        Send Focus to oCode
+                    End    
+                    Else Begin
+                        Get Request_Validate_And_Save of (Server(Self)) to bErr
+                        If (not(bErr)) Begin
+                            Send EnableEdit False
+                            Send Focus of oList                         
+                        End
+                    End                    
+                End_Procedure
+            End_Object
+            
+            Object oEditCancelButton is a cWebButton
+                Set piColumnSpan to 4
+                Set piColumnIndex to 4
+                Set psCaption to "Edit"
+                Set psCSSClass to "editButton"
+      
+                Procedure OnClick
+                    String sLabel
+                    Boolean bHasRecord
+                    WebGet psCaption to sLabel
+                    If (sLabel = "Edit") Begin
+                        Send enableEdit True  
+                        Send Focus of oCode                      
+                    End
+                    Else Begin                        
+                        Get HasRecord of (Server(Self)) to bHasRecord
+                        If (bHasRecord) Begin
+                             Send Find of (Server(Self)) eq 1
+                        End
+                        Else Begin
+                            Send Find of (Server(Self)) First_Record 2 
+                        End                       
+                        Send enableEdit False                       
+                        Send Focus of oList
+                    End                    
+                End_Procedure                
+            End_Object
+            
+            Object oDeleteButton is a cWebButton
+                Set piColumnSpan to 4
+                Set piColumnIndex to 16
+                Set psCaption to "Delete"
+                Set psCSSClass to "deleteButton"
+
+                Procedure OnClick
+                    Boolean bEnabled
+                    String sCode sDesc
+                    Integer iResponse iErr
+                    WebGet pbEnabled of oCode to bEnabled
+                    If (not(bEnabled)) Begin
+                        If (HasRecord(Server(Self))) Begin
+                            Get Field_Current_Value of (Server(Self)) Field Location.Code to sCode
+                            Get Field_Current_Value of (Server(Self)) Field Location.Description to sDesc
+                            Send MessageDialog of oMessageDialog Self ("Delete Location") ("Delete" * sDesc - "?") MD_YES_NO
+                            Procedure_Return
+                        End
+                    End
+                    Send Refind_Records of (Server(Self))
+                    Send Request_Assign of (Server(Self))
+                    Send EnableEdit (False)
+                    
+                    If (not(HasRecord(Server(Self)))) Begin
+                        Send MoveToFirstRow to oList    
+                    End
+                    Send Focus to oList
+                End_Procedure
+                
+                Procedure OnCloseModalDialog Handle hoModalDialog
+                    Boolean bEnabled
+                    String sLoginName
+                    Integer iResponse iErr
+                    WebGet MD_RESULT of oMessageDialog to iResponse
+                    If (iResponse ne MDR_YES) Begin
+                        Procedure_Return
+                    End
+                    WebGet pbEnabled of oCode to bEnabled
+                    If ( (not(bEnabled)) and (HasRecord(Server(Self)))) Begin
+                        Get Validate_Delete of (Server(Self)) to iErr
+                        If (not(iErr)) Begin
+                            Send Request_Delete of (Server(Self))
+                            Send Request_Clear of (Server(Self))
+                            Send MoveToFirstRow to oList    
+                        End
+                            Else Procedure_Return
+                    End
+                    Send EnableEdit False
+                End_Procedure
+            End_Object
+            
+        End_Object
+    End_Object 
+    
+    Procedure EnableEdit Boolean bEnabled
+        Boolean bAllowed
+        Get piIsAdmin of ghoWebSessionManager to bAllowed
+        If (not(bAllowed)) Begin
+            WebSet pbEnabled of oAddSaveBtn to False
+            WebSet pbEnabled of oEditCancelButton to False
+            WebSet pbEnabled of oDeleteButton to False
+            Procedure_Return
+        End        
+        String sVal
+        WebSet pbEnabled of oCode to bEnabled
+        WebSet pbEnabled of oDesc to bEnabled
+        WebSet pbEnabled of oAddress to bEnabled
+        WebSet pbEnabled of oCity to bEnabled
+        WebSet pbEnabled of oState to bEnabled
+        WebSet pbEnabled of oZip to bEnabled
+        WebSet pbEnabled of oStartDate to bEnabled
+        WebSet pbEnabled of oEndDate to bEnabled
+        WebSet pbEnabled of oRFIDTag to bEnabled
+        WebSet pbEnabled of oEmpFirst to bEnabled
+        //WebSet pbEnabled of oEmpLast to bEnabled
+        WebSet pbEnabled of oSuperFirst to bEnabled
+        //WebSet pbEnabled of oSuperLast to bEnabled
+        WebSet pbEnabled of oCustomerCode to bEnabled
+        
+        If (bEnabled) Begin
+            WebSet psCaption of oAddSaveBtn     to "Save"
+            WebSet psCaption of oEditCancelButton   to "Cancel"
+        End
+        Else Begin
+            WebSet psCaption of oAddSaveBtn     to "Add Location"
+            WebSet psCaption of oEditCancelButton   to "Edit"
+        End
+    End_Procedure
+    
+    Procedure OnShow
+        Send EnableEdit False
+        Send Rebuild_Constraints to (Server(Self))
+        Send MoveToFirstRow to oList        
+    End_Procedure
+End_Object

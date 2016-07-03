@@ -1,0 +1,16 @@
+Use cWebLabel.pkg
+
+Class cHJReportLabel is a cWebLabel
+    
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        Set peAlign to alignCenter
+        Set piColumnIndex to 1
+        Set piColumnSpan to 3
+    End_Procedure
+
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+    End_Procedure
+
+End_Class

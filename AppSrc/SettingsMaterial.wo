@@ -1,0 +1,265 @@
+Use cWebView.pkg
+Use cWebPanel.pkg
+Use cWebButton.pkg
+Use cWebForm.pkg
+Use cWebLabel.pkg
+Use cWebHtmlBox.pkg
+Use cCompanyDataDictionary.dd
+Use cBusinessUnitsDataDictionary.dd
+Use cPlantDataDictionary.dd
+Use cMaterialDataDictionary.dd
+//Use cNewMaterialDataDictionary.dd
+Use cli.pkg
+Use cRFWebForm.pkg
+
+Open Truck
+
+Register_Object oFirstName
+
+Object oSettingsMaterial is a cWebView    
+    // Your DDO structure will go here
+    Set pbServerOnShow to True
+    
+    Object oCompanyDD is a cCompanyDataDictionary
+    End_Object
+    
+    Object oDivisionDD is a cBusinessUnitsDataDictionary
+        Set DDO_Server to oCompanyDD
+        Set pbUseDDRelates to True
+        Set Field_Related_FileField Field BusinessUnits.CompanyId to 0 0 
+
+    End_Object
+    
+    Object oMaterialDD is a  cMaterialDataDictionary
+        Set DDO_Server to oDivisionDD
+
+        Set pbUseDDRelates to True
+        //Set Field_Related_FileField Field NewMaterial.DivisionID to 0 0 
+        Set Field_Related_FileField Field Material.DivisionID to 0 0
+
+        Procedure OnConstrain
+            String sCompGUID sBUGUID sConstraint
+            //Constrain Plant.PlantDesc eq "RRR"
+            Get psCompanyGUID of ghoWebSessionManager to sCompGUID
+            Get psBusinessUnitGUID of ghoWebSessionManager to sBUGUID
+            //Move (Lowercase(sCompGUID)) to sCompGUID
+            //Constrain Plant.CompanyID eq  sCompGUID
+//            Constrain NewMaterial.DivisionID eq  sBUGUID
+//            Constrain NewMaterial.IsDeleted eq 0
+            Constrain Material.DivisionID eq  sBUGUID
+            Constrain Material.IsDeleted eq 0
+        End_Procedure                          
+    End_Object          
+    
+    Set Main_DD to oMaterialDD
+    Set Server  to oMaterialDD
+    
+    Object oWebMainPanel is a cWebPanel
+        Set piColumnCount to 4        
+        
+        Object oWebLeftPanel is a cWebPanel
+            Set peRegion to prLeft
+            Set pbResizable to True
+            Set piWidth to 200
+            Set piMinWidth to 200
+            //Set psBackgroundColor to "#FFF"
+            Set psCSSClass to "viewLeft"
+
+    
+            Object oList is a cWebList
+                Set piColumnSpan to 4
+                Set pbFillHeight to True
+                Set Ordering to 2
+                Object oColumn is a cWebColumn
+                    Set psCaption to "Materials"
+                    //Entry_Item NewMaterial.Code
+                    Entry_Item Material.Code
+                End_Object
+
+                Procedure OnChangeCurrentRow String sFromRowID String sToRowID                
+                    Boolean bEnabled
+                    Forward Send OnChangeCurrentRow sFromRowID sToRowID
+                    WebGet pbEnabled of oCode to bEnabled
+                    If (bEnabled) Begin
+                        Send enableEdit False
+                    End
+                End_Procedure
+            End_Object            
+        End_Object
+
+        Object oWebMainPanel is a cWebPanel
+            Set piColumnCount to 20
+            Set psCSSClass to "viewCenter"
+    
+            Object oHdrLine is a cWebLabel
+                    Set psCaption to "Setup Material"
+                    Set psCSSClass to "hdrLabel"
+                    Set piColumnSpan to 20
+            End_Object
+
+            Object oCode is a cRFWebForm
+                Set psLabel to "Material Code:"
+                Set piColumnSpan to 10
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+//                Entry_Item NewMaterial.Code
+                Entry_Item Material.Code
+            End_Object
+            
+            Object oDesc is a cRFWebForm
+                Set psLabel to "Material Desc:"
+                Set piColumnSpan to 10
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                //Entry_Item NewMaterial.Description
+                Entry_Item Material.Description
+            End_Object
+
+//            Object oComID is a cWebForm
+//                Set psLabel to "Company ID:"
+//                Set piColumnSpan to 10
+//                Set peLabelAlign to alignLeft
+//                Set peLabelPosition to lpLeft
+//                Entry_Item Plant.CompanyID
+//            End_Object
+                        
+            Object oSpacer is a cWebSpacer
+                Set pbFillHeight to True
+                Set psCSSClass to "setupSpacer"
+            End_Object
+
+            Object oAddSaveBtn is a cWebButton
+                Set psCaption to "Add Material"
+                Set piColumnSpan to 4    
+                
+                Procedure OnClick
+                    String sLabel
+                    Boolean bHasRecord bErr
+                    WebGet psCaption to sLabel
+                    If (sLabel = "Add Material") Begin
+                        Send Request_Clear to (Server(Self))
+                        Send EnableEdit True
+                        Send Focus to oCode
+                    End    
+                    Else Begin
+                        Get Request_Validate_And_Save of (Server(Self)) to bErr
+                        If (not(bErr)) Begin
+                            Send EnableEdit False
+                            Send Focus of oList                         
+                        End
+                    End                    
+                End_Procedure
+            End_Object
+            
+            Object oEditCancelButton is a cWebButton
+                Set piColumnSpan to 4
+                Set piColumnIndex to 4
+                Set psCaption to "Edit"
+                Set psCSSClass to "editButton"
+      
+                Procedure OnClick
+                    String sLabel
+                    Boolean bHasRecord
+                    WebGet psCaption to sLabel
+                    If (sLabel = "Edit") Begin
+                        Send enableEdit True  
+                        Send Focus of oCode                      
+                    End
+                    Else Begin                        
+                        Get HasRecord of (Server(Self)) to bHasRecord
+                        If (bHasRecord) Begin
+                             Send Find of (Server(Self)) eq 1
+                        End
+                        Else Begin
+                            Send Find of (Server(Self)) First_Record 2 
+                        End                       
+                        Send enableEdit False                       
+                        Send Focus of oList
+                    End                    
+                End_Procedure                
+            End_Object
+            
+            Object oDeleteButton is a cWebButton
+                Set piColumnSpan to 4
+                Set piColumnIndex to 16
+                Set psCaption to "Delete"
+                Set psCSSClass to "deleteButton"
+
+                Procedure OnClick
+                    Boolean bEnabled
+                    String sCode sDesc
+                    Integer iResponse iErr
+                    WebGet pbEnabled of oCode to bEnabled
+                    If (not(bEnabled)) Begin
+                        If (HasRecord(oPlantDD)) Begin
+                            //Get Field_Current_Value of oMaterialDD Field NewMaterial.Code to sCode
+                            //Get Field_Current_Value of oMaterialDD Field NewMaterial.Description to sDesc
+                            Get Field_Current_Value of oMaterialDD Field Material.Code to sCode
+                            Get Field_Current_Value of oMaterialDD Field Material.Description to sDesc
+                            Send MessageDialog of oMessageDialog Self ("Delete Plant") ("Delete" * sDesc - "?") MD_YES_NO
+                            Procedure_Return
+                        End
+                    End
+                    Send Refind_Records of (Server(Self))
+                    Send Request_Assign of (Server(Self))
+                    Send EnableEdit (False)
+                    
+                    If (not(HasRecord(Server(Self)))) Begin
+                        Send MoveToFirstRow to oList    
+                    End
+                    Send Focus to oList
+                End_Procedure
+                
+                Procedure OnCloseModalDialog Handle hoModalDialog
+                    Boolean bEnabled
+                    String sLoginName
+                    Integer iResponse iErr
+                    WebGet MD_RESULT of oMessageDialog to iResponse
+                    If (iResponse ne MDR_YES) Begin
+                        Procedure_Return
+                    End
+                    WebGet pbEnabled of oCode to bEnabled
+                    If ( (not(bEnabled)) and (HasRecord(oPlantDD))) Begin
+                        Get Validate_Delete of (Server(Self)) to iErr
+                        If (not(iErr)) Begin
+                            Send Request_Delete of (Server(Self))
+                            Send Request_Clear of (Server(Self))
+                            Send MoveToFirstRow to oList    
+                        End
+                            Else Procedure_Return
+                    End
+                    Send EnableEdit False
+                End_Procedure
+            End_Object
+            
+        End_Object
+    End_Object 
+    
+    Procedure EnableEdit Boolean bEnabled
+        Boolean bAllowed
+        Get piIsAdmin of ghoWebSessionManager to bAllowed
+        If (not(bAllowed)) Begin
+            WebSet pbEnabled of oAddSaveBtn to False
+            WebSet pbEnabled of oEditCancelButton to False
+            WebSet pbEnabled of oDeleteButton to False
+            Procedure_Return
+        End        
+        String sVal
+        WebSet pbEnabled of oCode to bEnabled
+        WebSet pbEnabled of oDesc to bEnabled
+        If (bEnabled) Begin
+            WebSet psCaption of oAddSaveBtn     to "Save"
+            WebSet psCaption of oEditCancelButton   to "Cancel"
+        End
+        Else Begin
+            WebSet psCaption of oAddSaveBtn     to "Add Material"
+            WebSet psCaption of oEditCancelButton   to "Edit"
+        End
+    End_Procedure
+    
+    Procedure OnShow
+        Send EnableEdit False
+        Send Rebuild_Constraints to (Server(Self))
+        Send MoveToFirstRow to oList        
+    End_Procedure
+End_Object

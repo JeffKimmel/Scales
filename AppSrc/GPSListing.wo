@@ -1,0 +1,59 @@
+Use cWebView.pkg
+Use cWebPanel.pkg
+Use cWebForm.pkg 
+
+Object oGPSListing is a cWebView
+    Set pbServerOnShow to True
+    
+    Object oWebMainPanel is a cWebPanel
+        Set piColumnCount to 20
+        Object oHdrLine is a cWebLabel
+            Set psCaption to "GPS Reports"
+            Set psCSSClass to "hdrLabel"
+            Set piColumnSpan to 20
+        End_Object
+        
+        Object oReport is a cWebCombo
+            Set piColumnSpan to 4
+            Set piLabelOffset to 0
+            Set psCaption to ""
+            Set pbShowLabel to False
+            Procedure OnFill
+                
+                Send AddComboItem "http://50.57.171.86/Dashboard/ai.asp?DAI_R=2530" "GPS Listing - All"
+                Send AddComboItem "http://50.57.171.86/Dashboard/ai.asp?DAI_R=2507" "GPS - Unstarted GPS Units"
+                Send AddComboItem "http://50.57.171.86/Dashboard/ai.asp?DAI_R=2512" "GPS - Started GPS Units"
+            End_Procedure
+        End_Object
+        
+        Object oRunReport is a cWebButton
+            Set piColumnIndex to 4
+            Set piColumnSpan to 3
+            Set psCaption to "Run Report"
+
+            Procedure OnClick
+                Send RunReport
+            End_Procedure
+        End_Object
+        
+        Object oWebFrame is a cWebIFrame
+            Set pbFillHeight to True
+            Set piColumnSpan to 20
+        End_Object
+            
+    End_Object
+    
+    Procedure RunReport
+        String sURL        
+        WebGet psValue of oReport to sURL
+        If (sURL = "") Begin
+            Move ("http://50.57.171.86/Dashboard/ai.asp?DAI_R=2530") to sURL
+            WebSet psValue of oReport to sURL
+        End
+        WebSet psUrl of oWebFrame to sURL
+    End_Procedure
+    
+    Procedure OnShow
+        Send RunReport
+    End_Procedure
+End_Object

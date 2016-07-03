@@ -1,0 +1,204 @@
+Use cWebForm.pkg
+Register_Object oDashboardDD
+
+Class cReportController is a cWebForm
+    
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        Set pbRender to False
+        
+        {WebProperty = true}
+        Property Integer piRow
+        
+        {WebProperty = true}        
+        Property String psReportType
+        
+        {WebProperty = true}
+        Property Integer piCol1Report
+        {WebProperty = true}
+        Property Integer piCol1Duration        
+        {WebProperty = true}
+        Property Integer piCol1SpanRow
+        
+        {WebProperty = true}
+        Property Integer piCol2Report        
+        {WebProperty = true}
+        Property Integer piCol2Duration
+    End_Procedure
+
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+    End_Procedure
+    
+        
+    Procedure spanRowChanged
+        Integer iReportCol1Combo iReportCol2Combo  
+        Integer  iCol1Duration  iCol2Duration iSpanRow iSpanRowObj
+        String sReportType
+        
+        WebGet piCol1Report to iReportCol1Combo
+        WebGet piCol2Report to iReportCol2Combo
+        WebGet piCol1Duration to iCol1Duration
+        WebGet piCol2Duration to iCol2Duration
+        WebGet piCol1SpanRow to iSpanRowObj
+        WebGet psValue of iSpanRowObj to iSpanRow
+        WebGet psReportType to sReportType
+        
+        If (iReportCol2Combo = 0) Begin
+            Procedure_Return
+        End
+        If (sReportType = "Ticket") Begin
+            Send ResizeTicketRow iSpanRow
+        End
+        Else If (sReportType = "GPS") Begin
+            Send ResizeGPSRow iSpanRow
+        End        
+        Else If (sReportType = "HeavyJob") Begin
+            Send ResizeHeavyJobRow iSpanRow
+        End        
+    End_Procedure    
+    
+    Procedure defaultRow
+        Integer iRow iReportSpanRowObj iReportObj iReportDurationObj
+        String sValue sDefault sReportType sReportDuration  sUserGUID
+        tReportStruct thisStructure
+        
+        Get psUserGUID of ghoWebSessionManager to sUserGUID
+        Get psReportType to sReportType
+        Get piRow to iRow
+        WebGet piCol1Report to iReportObj
+        WebGet piCol1Duration to iReportDurationObj
+        WebGet piCol1SpanRow to iReportSpanRowObj
+
+        Get DashboardData of oDashboardDD sUserGUID iRow 1 to thisStructure
+        WebSet psValue of iReportObj to (Trim(thisStructure.reportLink))
+        WebSet psValue of iReportSpanRowObj to thisStructure.spanRow
+        If (iReportDurationObj > 0 ) WebSet psValue of iReportDurationObj to  (Trim(thisStructure.reportDuration))
+        
+        WebGet piCol2Report to iReportObj  
+        WebGet piCol2Duration to iReportDurationObj
+        If ( iReportDurationObj > 0 ) WebGet piCol2Duration to iReportDurationObj
+
+        Get DashboardData of oDashboardDD sUserGUID iRow 2 to thisStructure        
+        WebSet psValue of iReportObj to (Trim(thisStructure.reportLink))        
+        If (iReportDurationObj > 0) WebSet psValue of iReportDurationObj to  (Trim(thisStructure.reportDuration))        
+        Send spanRowChanged
+    End_Procedure
+    
+    Procedure SaveRow
+        Integer iRow iReportSpanRowObj iReportObj iReportDurationObj iSpanRow
+        String sValue sDefault sReportType sReportDuration sReport sUserGUID
+        tReportStruct thisStructure
+        Get psUserGUID of ghoWebSessionManager to sUserGUID
+        
+        WebGet psReportType to sReportType
+        WebGet piRow to iRow
+        
+        WebGet piCol1Report to iReportObj
+        WebGet psValue of iReportObj to sReport
+        WebGet piCol1Duration to iReportDurationObj
+        If (iReportDurationObj > 0) WebGet psValue of iReportDurationObj  to sReportDuration
+        WebGet piCol1SpanRow to iReportSpanRowObj        
+        WebGet psValue of iReportSpanRowObj to iSpanRow
+
+        Send SaveDashboard of oDashboardDD sUserGUID iRow 1 "" sReport sReportDuration iSpanRow        
+
+        WebGet piCol2Report to iReportObj
+        WebGet psValue of iReportObj to sReport
+        WebGet piCol2Duration to iReportDurationObj        
+        If (iReportDurationObj > 0) WebGet psValue of iReportDurationObj  to sReportDuration
+        Send SaveDashboard of oDashboardDD sUserGUID iRow 2 "" sReport sReportDuration iSpanRow        
+    End_Procedure
+    
+    Procedure resizeTicketRow Integer iSpanRow
+        Integer iReportCol1Combo iReportCol2Combo  iRow iTicketRows
+        Integer  iCol1Duration  iCol2Duration iSpanRowObj
+       
+        WebGet piRow to iRow
+        WebGet piCol1Report to iReportCol1Combo
+        WebGet piCol2Report to iReportCol2Combo
+        WebGet piCol1Duration to iCol1Duration
+        WebGet piCol2Duration to iCol2Duration
+        WebGet piCol1SpanRow to iSpanRowObj
+        //If (iSpanRow = 0) Move 1 to iSpanRow
+        // Else Move 0 to iSpanRow
+         
+//FFFF        WebGet psValue of oCmbTicketRows to iTicketRows
+        
+        If (iSpanRow = 1) Begin
+            WebSet pbRender  of iReportCol2Combo  to False    
+            WebSet pbRender of iCol2Duration to  False            
+                        
+            WebSet piColumnSpan  of iReportCol1Combo to 5
+            WebSet piColumnIndex of  iCol1Duration to 6
+            WebSet piColumnSpan of  iCol1Duration to 2
+            //WebSet piColumnIndex of iSpanRowObj to 9
+        End
+        Else Begin
+            If (iRow le iTicketRows) Begin
+                WebSet pbRender of iReportCol2Combo to True
+                WebSet pbRender of iCol2Duration to True
+            End
+            WebSet piColumnSpan  of iReportCol1Combo to 3
+            WebSet piColumnIndex of  iCol1Duration to 3
+            WebSet piColumnSpan of  iCol1Duration to 1
+            //WebSet piColumnIndex of iSpanRowObj to 4                        
+        End       
+        
+    End_Procedure
+
+    Procedure ResizeGPSRow Integer iSpanRow
+        Integer iReportCol1Combo iReportCol2Combo  iRow iTotalRows
+        Integer  iCol1Duration  iCol2Duration iSpanRowObj
+       
+        WebGet piRow to iRow
+        WebGet piCol1Report to iReportCol1Combo
+        WebGet piCol2Report to iReportCol2Combo
+        //WebGet piCol1Duration to iCol1Duration
+       // WebGet piCol2Duration to iCol2Duration
+        WebGet piCol1SpanRow to iSpanRowObj
+//FFFF        WebGet psValue of oCmbGPSRows to iTotalRows
+        
+        If (iSpanRow = 1) Begin
+            WebSet pbRender  of iReportCol2Combo  to False                        
+            WebSet piColumnSpan  of iReportCol1Combo to 9
+            WebSet piColumnIndex of iSpanRowObj to 9
+        End
+        Else Begin
+            If (iRow le iTotalRows) Begin
+                WebSet pbRender of iReportCol2Combo to True
+            End
+            WebSet piColumnSpan  of iReportCol1Combo to 4
+            //WebSet piColumnIndex of iSpanRowObj to 4              
+        End       
+        
+    End_Procedure
+    
+    Procedure ResizeHeavyJobRow Integer iSpanRow
+        Integer iReportCol1Combo iReportCol2Combo  iRow iTotalRows
+        Integer  iCol1Duration  iCol2Duration iSpanRowObj
+       
+        WebGet piRow to iRow
+        WebGet piCol1Report to iReportCol1Combo
+        WebGet piCol2Report to iReportCol2Combo
+        //WebGet piCol1Duration to iCol1Duration
+       // WebGet piCol2Duration to iCol2Duration
+        WebGet piCol1SpanRow to iSpanRowObj
+//FFFF        WebGet psValue of oCmbHeavyJobRows to iTotalRows
+        
+        If (iSpanRow = 1) Begin
+            WebSet pbRender  of iReportCol2Combo  to False                        
+            WebSet piColumnSpan  of iReportCol1Combo to 9
+            //WebSet piColumnIndex of iSpanRowObj to 9
+        End
+        Else Begin
+            If (iRow le iTotalRows) Begin
+                WebSet pbRender of iReportCol2Combo to True
+            End
+            WebSet piColumnSpan  of iReportCol1Combo to 4
+            //WebSet piColumnIndex of iSpanRowObj to 4              
+        End       
+        
+    End_Procedure
+    
+End_Class

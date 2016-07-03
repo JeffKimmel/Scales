@@ -1,0 +1,816 @@
+Use cWebView.pkg
+Use cWebPanel.pkg
+Use cWebButton.pkg
+Use cWebForm.pkg
+Use cWebLabel.pkg
+Use cWebHtmlBox.pkg
+Use cRFIDStationDataDictionary.dd
+Use cBusinessUnitsDataDictionary.dd
+Use cCompanyDataDictionary.dd
+Use cLocationDataDictionary.dd
+Use cMaterialDataDictionary.dd
+Use cNewMaterialDataDictionary.dd
+Use cRFWebForm.pkg
+Use cConnectionDataDictionary.dd
+
+Use cli.pkg
+
+Open NewMaterial
+Open Truck
+
+Register_Object oMaterial0Desc
+Register_Object oMaterial0ID
+Register_Object oMaterial1Desc
+Register_Object oMaterial1ID
+Register_Object oMaterial2Desc
+Register_Object oMaterial2ID
+Register_Object oMaterial3Desc
+Register_Object oMaterial3ID
+
+
+Object oSettingsRFIDStations is a cWebView    
+    // Your DDO structure will go here
+    Set pbServerOnShow to True
+    {WebProperty = True}
+    Property String psDivisionID ""
+
+    Object oCompanyDD is a cCompanyDataDictionary
+    End_Object
+    
+    Object oDivisionDD is a cBusinessUnitsDataDictionary
+        Set DDO_Server to oCompanyDD
+        Set Constrain_File to Company.File_Number
+  
+        //Set pbUseDDRelates to True
+        //Set Field_Related_FileField Field BusinessUnits.CompanyId to 0 0
+        //Set Field_Related_FileField Field BusinessUnits2.Id to 0 0
+        
+    End_Object
+    
+    Object oSuperDD is a cSuperDataDictionary
+        Set pbUseDDRelates to True
+    End_Object
+    
+    Object oEmpDD is a cWebAppUserDataDictionary
+        Set pbUseDDRelates to True
+    End_Object
+    
+    Object oCustomerDD is a cConnectionDataDictionary
+        Set pbUseDDRelates to True
+    End_Object
+
+    Object oLocationDD is a cLocationDataDictionary
+        Set DDO_Server to oDivisionDD
+        Set DDO_Server to oEmpDD
+        Set DDO_Server to oSuperDD
+            
+        Set pbUseDDRelates to True
+        Set Field_Related_FileField Field Location.DivisionID to 0 0 
+        Set Field_Related_FileField Field Location.Super to 0 0
+        Set Field_Related_FileField Field Location.Admin to 0 0
+    End_Object
+    
+//    Object oNewMaterialDD is a cNewMaterialDataDictionary
+//        Set DDO_Server to oDivisionDD
+//
+//        Set pbUseDDRelates to True
+//        Set Field_Related_FileField Field Material.DivisionID to 0 0        
+//    End_Object
+//    
+    Object oMaterial_DD is a cMaterialDataDictionary
+        Set DDO_Server to oDivisionDD
+        
+        Set pbUseDDRelates to True
+        Set Field_Related_FileField Field Material.DivisionID to 0 0
+    End_Object
+
+    Object oPlantDD is a cPlantDataDictionary
+        Set DDO_Server to oDivisionDD
+        
+        Set pbUseDDRelates to True
+        Set Field_Related_FileField Field Plant.BusinessUnitID to 0 0
+        //Set Field_Related_FileField Field Plant.CompanyID to 0 0 
+    End_Object
+    
+    Object oRFIDStationDD is a cRFIDStationDataDictionary    
+        Set DDO_Server to oDivisionDD
+        Set DDO_Server to oLocationDD
+        Set DDO_Server to oMaterial_DD
+        Set DDO_Server to oPlantDD
+        Set DDO_Server to oCustomerDD
+        
+        Set Constrain_File to BusinessUnits.File_Number
+        //Find eq BusinessUnits by Index.1
+        //Set Ordering to 2
+        Set ParentNullAllowed Location.File_number to True
+        Set ParentNullAllowed Material.File_number to True
+        Set ParentNullAllowed Plant.File_Number to True          
+        Set ParentNullAllowed Connection.File_Number to True          
+                       
+        Function Request_Validate_And_Save Returns Boolean  
+                 
+            Boolean bSave 
+            String sLocation sVal
+            WebGet psValue of oLocationCode to sLocation 
+
+            If (trim(sLocation) = "") Begin
+                Send Clear_Main_File of oLocationDD
+            End
+            
+            WebGet psValue of oMaterialCode to sVal
+            If (Trim(sVal) = "") Begin
+                Send Clear_Main_File of oMaterial_DD
+            End
+            
+            WebGet psValue of oPlantCode to sVal
+            If (Trim(sVal) = "") Begin
+                Send Clear_Main_File of oPlantDD
+            End
+            
+            Forward Get Request_Validate_And_Save to bSave            
+            Function_Return bSave
+        End_Function
+
+
+        Procedure Save_Main_File
+            String sLoc sMatl sPlant sCust
+
+            WebGet psValue of oLocationCode to sLoc
+            If (trim(sLoc) = "") Begin
+                Send Clear_Main_File to oLocationDD
+                Move  "00000000-0000-0000-0000-000000000000" to RFIDStation.LocationID
+            End            
+            WebGet psValue of oMaterialCode to sMatl
+            If (Trim(sMAtl) = "") Begin
+                Move  "00000000-0000-0000-0000-000000000000" to RFIDStation.MaterialGUID
+                Send Clear_Main_File of oMaterial_DD
+            End
+            WebGet psValue of oPlantCode to sPlant
+            If (Trim(sPlant) = "") Begin
+                Move  "00000000-0000-0000-0000-000000000000" to RFIDStation.PlantGUID
+                Send Clear_Main_File of oPlantDD
+            End
+            WebGet psValue of oCustCode to sCust
+            If (Trim(sCust) = "") Begin
+                Move  "00000000-0000-0000-0000-000000000000" to RFIDStation.CustomerID
+                Send Clear_Main_File of oCustomerDD
+            End
+ 
+            Forward Send Save_Main_File
+            
+        End_Procedure         
+    End_Object          
+    
+    Set Main_DD to oRFIDStationDD
+    Set Server  to oRFIDStationDD
+    
+    Object oWebMainPanel is a cWebPanel
+        Set piColumnCount to 4        
+        
+        Object oWebLeftPanel is a cWebPanel
+            Set peRegion to prLeft
+            Set pbResizable to True
+            Set piWidth to 200
+            Set piMinWidth to 200
+            //Set psBackgroundColor to "#FFF"
+            Set psCSSClass to "viewLeft"
+
+    
+            Object oList is a cWebList
+                Set piColumnSpan to 4
+                Set pbFillHeight to True
+                Set Ordering to 2
+                Object oColumn is a cWebColumn
+                    Set psCaption to "Stations"
+                    Entry_Item RFIDStation.Code
+                End_Object
+
+                Procedure OnChangeCurrentRow String sFromRowID String sToRowID                
+                    Boolean bEnabled
+                    Forward Send OnChangeCurrentRow sFromRowID sToRowID
+                    WebGet pbEnabled of oDesc to bEnabled
+                    If (bEnabled) Begin
+                        Send enableEdit False
+                    End
+                End_Procedure
+            End_Object            
+        End_Object
+
+        Object oWebMainPanel is a cWebPanel
+            Set piColumnCount to 20
+            Set psCSSClass to "viewCenter"
+    
+            Object oHdrLine is a cWebLabel
+                    Set psCaption to "Setup RFID Stations"
+                    Set psCSSClass to "hdrLabel"
+                    Set piColumnSpan to 20
+            End_Object
+
+            Object oCode is a cRFWebForm
+                Set psLabel to "Serial Number:"
+                Set piColumnSpan to 6
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Set pbEnabled to False
+                
+                Entry_Item RFIDStation.Code
+                Set piLabelOffset to 90
+            End_Object
+            
+            Object oDesc is a cRFWebForm
+                Set psLabel to "Desc:"
+                Set piColumnSpan to 8
+                Set piColumnIndex to 7
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item RFIDStation.Description
+                Set piLabelOffset to 80
+            End_Object
+            
+            Object oStationUse is a cWebCombo
+                Set psLabel to "Use:"
+                Set piColumnSpan to 6
+                Entry_Item RFIDStation.StationUse
+                Set piLabelOffset to 90
+                
+                Procedure OnFill
+                     Forward Send OnFill
+                            Send AddComboItem "Material Delivery - Plant"       "Material Delivery - Plant"
+                            Send AddComboItem "Material Delivery - Location"    "Material Delivery - Location"
+                            Send AddComboItem "Material Production - Plant"     "Material Production - Plant"
+                            Send AddComboItem "Material Production - Location"  "Material Production - Location"
+                            Send AddComboItem "Material Haul - Plant"           "Material Haul - Plant"
+                            Send AddComboItem "Material Haul - Location"        "Material Haul - Location"
+                End_Procedure
+            End_Object
+
+            Object oTimeZone is a cWebCombo
+                Set psLabel to "Time Zone:"
+                Set piColumnSpan to 8
+                Set piColumnIndex to 7
+                     Entry_Item RFIDStation.TimeZone
+                Set piLabelOffset to 80
+                
+                Procedure OnFill
+                     Forward Send OnFill
+                            Send AddComboItem "Canada/Atlantic"   "Canada/Atlantic"
+                            Send AddComboItem "Canada/Atlantic" "Canada/Atlantic"
+                            Send AddComboItem "Canada/East-Saskatchewan" "Canada/East-Saskatchewan"
+                            Send AddComboItem "Canada/Eastern" "Canada/Eastern"
+                            Send AddComboItem "Canada/Mountain" "Canada/Mountain"
+                            Send AddComboItem "Canada/Newfoundland" "Canada/Newfoundland"
+                            Send AddComboItem "Canada/Pacific" "Canada/Pacific"
+                            Send AddComboItem "Canada/Saskatchewan" "Canada/Saskatchewan"
+                            Send AddComboItem "Canada/Yukon" "Canada/Yukon"
+                            Send AddComboItem "US/Alaska" "US/Alaska"
+                            Send AddComboItem "US/Arizona" "US/Arizona"
+                            Send AddComboItem "US/Central" "US/Central"
+                            Send AddComboItem "US/East-Indiana" "US/East-Indiana"
+                            Send AddComboItem "US/Eastern" "US/Eastern"
+                            Send AddComboItem "US/Hawaii" "US/Hawaii"
+                            Send AddComboItem "US/Indiana-Starke" "US/Indiana-Starke"
+                            Send AddComboItem "US/Michigan" "US/Michigan"
+                            Send AddComboItem "US/Mountain" "US/Mountain"
+                            Send AddComboItem "US/Pacific" "US/Pacific"
+                            Send AddComboItem "US/Pacific-New" "US/Pacific-New"
+                            Send AddComboItem "US/Samoa" "US/Samoa"
+                End_Procedure
+            End_Object
+            
+
+            
+            Object oEntrance is a cWebCheckbox
+                Entry_Item RFIDStation.BuldingEntrance
+                Set piColumnSpan to 5
+                Set psLabel to "Entrance:"                
+                Set pbShowLabel to True
+                Set piLabelOffset to 90
+            End_Object
+
+            Object oMaterialCode is a cRFWebForm
+                Entry_Item Material.Code
+                Set piColumnSpan to 6
+                Set psLabel to "Material:"                
+                Set pbShowLabel to True
+                Set piLabelOffset to 90
+            End_Object
+
+            Object oMaterialDesc is a cRFWebForm
+                Set psLabel to "Desc:"
+                Set piColumnSpan to 8
+                Set piColumnIndex to 7
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item Material.Description
+                Set piLabelOffset to 80
+                Set pbEnabled to False
+            End_Object
+
+            Object oLocationCode is a cRFWebForm
+                Entry_Item Location.Code
+                Set piColumnSpan to 6
+                Set psLabel to "Location:"                
+                Set pbShowLabel to True
+                Set piLabelOffset to 90
+            End_Object
+
+            Object oLocationDesc is a cRFWebForm
+                Set psLabel to "Desc:"
+                Set piColumnSpan to 8
+                Set piColumnIndex to 7
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item Location.Description
+                Set piLabelOffset to 80
+                Set pbEnabled to False
+            End_Object
+
+            Object oPlantCode is a cRFWebForm
+                Entry_Item Plant.PlantCode
+                Set piColumnSpan to 6
+                Set psLabel to "Plant:"                
+                Set pbShowLabel to True
+                Set piLabelOffset to 90
+            End_Object
+
+            Object oPlantDesc is a cRFWebForm
+                Set psLabel to "Desc:"
+                Set piColumnSpan to 8
+                Set piColumnIndex to 7
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item Plant.PlantDesc
+                Set piLabelOffset to 80
+                Set pbEnabled to False
+            End_Object
+
+            Object oCustCode is a cRFWebForm
+                Entry_Item Connection.ChildAppCode
+                Set piColumnSpan to 6
+                Set psLabel to "Customer:"                
+                Set pbShowLabel to True
+                Set piLabelOffset to 90
+            End_Object
+
+            Object oCustDesc is a cRFWebForm
+                Set psLabel to "Desc:"
+                Set piColumnSpan to 8
+                Set piColumnIndex to 7
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item Connection.ChildName
+                Set piLabelOffset to 80
+                Set pbEnabled to False
+            End_Object
+
+            Object oAntennVerbiage is a cWebLabel
+                //Set piColumnIndex to 1
+                Set piColumnSpan to 20
+                //Set psLabel to "A:"                
+                Set pbShowLabel to True
+                Set piLabelOffset to 90
+                Set psCaption to "If you want the antenna description to be different from the RFID Station, enter the descriptions below."
+            End_Object
+
+            Object oAntennVerbiage1 is a cWebLabel
+                //Set piColumnIndex to 1
+                Set piColumnSpan to 5
+                //Set psLabel to "A:"                
+                Set pbShowLabel to True
+                Set piLabelOffset to 90
+                Set psCaption to "Description"
+            End_Object
+
+            Object oAntennVerbiage2 is a cWebLabel
+                //Set piColumnIndex to 1
+                Set piColumnSpan to 5
+                //Set psLabel to "A:"                
+                Set pbShowLabel to True
+                Set piLabelOffset to 40
+                Set psCaption to "Material Code"
+                Set piColumnIndex to 6
+            End_Object
+
+            Procedure UpdateMaterialData Handle hoDD Handle MatCode Handle MatDesc Handle MatID
+                String sCode sDesc sID
+                If (hoDD = 0) Begin
+                    Move "00000000-0000-0000-0000-000000000000" to sID
+                             
+                End
+                Else Begin
+                    Get Field_Current_Value of hoDD Field Material.Code to sCode
+                    Get Field_Current_Value of hoDD Field Material.Description to sDesc
+                    Get Field_Current_Value of hoDD Field Material.ID to sID
+                End 
+                
+                WebSet psValue of MatCode to sCode
+                WebSet psValue of MatDesc to sDesc
+                WebSet psValue of MatID   to sID
+                    
+                WebSet pbChanged of MatCode to True
+                WebSet pbChanged of MatDesc to True
+                WebSet pbChanged of MatID   to True
+            End_Procedure
+
+            Object oAntenna0 is a cRFWebForm
+                Entry_Item RFIDStation.Antenna0Desc
+                Set piColumnSpan to 6
+                Set psLabel to "Antenna 0:"                
+                Set pbShowLabel to True
+                Set piLabelOffset to 90
+            End_Object            
+
+            Object oMaterial0Code is a cRFWebForm
+                Entry_Item RFIDStation.Material0Code
+                Set phoPrompt to oMaterialWebLookup
+                Set piColumnSpan to 4
+                Set psLabel to ""                
+                Set pbShowLabel to True
+                Set piLabelOffset to 40
+                Set piColumnIndex to 6
+                
+                WebPublishProcedure PromptUpdateCallback 
+                Procedure PromptUpdateCallback Handle hoPrompt
+                    Handle hoDD
+                    RowID riId
+                    Get Server of hoPrompt to hoDD    // this is the prompt's DD
+                    
+                    Send UpdateMaterialData hoDD oMaterial0Code oMaterial0Desc oMaterial0ID                    
+                End_Procedure
+    
+                Procedure Prompt_Callback Handle hoPrompt
+                    WebSet psPromptUpdateCallback of hoPrompt to "PromptUpdateCallback"
+                    WebSet peUpdateMode of hoPrompt to umPromptCustom
+                End_Procedure
+
+            End_Object
+
+            Object oMaterial0Desc is a cRFWebForm
+                Entry_Item RFIDStation.Material0Desc
+                Set piColumnSpan to 5
+                Set psLabel to ""                
+                Set pbShowLabel to True
+                Set piLabelOffset to 1
+                Set piColumnIndex to 10
+                Set pbEnabled to False          
+            End_Object
+            
+            Object oMaterial0ID is a cRFWebForm
+                Entry_Item RFIDStation.Material0ID
+                Set piColumnSpan to 1
+                Set psLabel to ""                
+                Set pbShowLabel to True
+                Set piLabelOffset to 1
+                Set piColumnIndex to 16
+                Set pbVisible to False
+                Set pbEnabled to False          
+            End_Object
+
+            Object oAntenna1 is a cRFWebForm
+                Entry_Item RFIDStation.Antenna1Desc
+                Set piColumnSpan to 6
+                Set psLabel to "Antenna 1:"                
+                Set pbShowLabel to True
+                Set piLabelOffset to 90
+            End_Object            
+
+            Object oMaterial1Code is a cRFWebForm
+                Entry_Item RFIDStation.Material1Code
+                Set phoPrompt to oMaterialWebLookup
+                Set piColumnSpan to 4
+                Set psLabel to ""                
+                Set pbShowLabel to True
+                Set piLabelOffset to 40
+                Set piColumnIndex to 6
+                
+                WebPublishProcedure PromptUpdateCallback 
+                Procedure PromptUpdateCallback Handle hoPrompt
+                    Handle hoDD
+                    RowID riId
+                    Get Server of hoPrompt to hoDD    // this is the prompt's DD
+                    Send UpdateMaterialData hoDD oMaterial1Code oMaterial1Desc oMaterial1ID                    
+                End_Procedure
+    
+                Procedure Prompt_Callback Handle hoPrompt
+                    WebSet psPromptUpdateCallback of hoPrompt to "PromptUpdateCallback"
+                    WebSet peUpdateMode of hoPrompt to umPromptCustom
+                End_Procedure
+
+            End_Object
+
+            Object oMaterial1Desc is a cRFWebForm
+                Entry_Item RFIDStation.Material1Desc
+                Set piColumnSpan to 5
+                Set psLabel to ""                
+                Set pbShowLabel to True
+                Set piLabelOffset to 1
+                Set piColumnIndex to 10
+                Set pbEnabled to False          
+            End_Object
+            
+            Object oMaterial1ID is a cRFWebForm
+                Entry_Item RFIDStation.Material1ID
+                Set piColumnSpan to 1
+                Set psLabel to ""                
+                Set pbShowLabel to True
+                Set piLabelOffset to 1
+                Set piColumnIndex to 16
+                Set pbVisible to False
+                Set pbEnabled to False          
+            End_Object
+
+            Object oAntenna2 is a cRFWebForm
+                Entry_Item RFIDStation.Antenna2Desc
+                Set piColumnSpan to 6
+                Set psLabel to "Antenna 2:"                
+                Set pbShowLabel to True
+                Set piLabelOffset to 90
+            End_Object            
+
+            Object oMaterial2Code is a cRFWebForm
+                Entry_Item RFIDStation.Material2Code
+                Set phoPrompt to oMaterialWebLookup
+                Set piColumnSpan to 4
+                Set psLabel to ""                
+                Set pbShowLabel to True
+                Set piLabelOffset to 40
+                Set piColumnIndex to 6
+                
+                WebPublishProcedure PromptUpdateCallback 
+                Procedure PromptUpdateCallback Handle hoPrompt
+                    Handle hoDD
+                    RowID riId
+                    Get Server of hoPrompt to hoDD    // this is the prompt's DD
+                    
+                    Send UpdateMaterialData hoDD oMaterial2Code oMaterial2Desc oMaterial2ID                    
+                End_Procedure
+    
+                Procedure Prompt_Callback Handle hoPrompt
+                    WebSet psPromptUpdateCallback of hoPrompt to "PromptUpdateCallback"
+                    WebSet peUpdateMode of hoPrompt to umPromptCustom
+                End_Procedure
+
+            End_Object
+
+            Object oMaterial2Desc is a cRFWebForm
+                Entry_Item RFIDStation.Material2Desc
+                Set piColumnSpan to 5
+                Set psLabel to ""                
+                Set pbShowLabel to True
+                Set piLabelOffset to 1
+                Set piColumnIndex to 10          
+                Set pbEnabled to False          
+            End_Object
+            
+            Object oMaterial2ID is a cRFWebForm
+                Entry_Item RFIDStation.Material2ID
+                Set piColumnSpan to 1
+                Set psLabel to ""                
+                Set pbShowLabel to True
+                Set piLabelOffset to 1
+                Set piColumnIndex to 16
+                Set pbVisible to False
+                Set pbEnabled to False          
+            End_Object
+
+            Object oAntenna3 is a cRFWebForm
+                Entry_Item RFIDStation.Antenna3Desc
+                Set piColumnSpan to 6
+                Set psLabel to "Antenna 3:"                
+                Set pbShowLabel to True
+                Set piLabelOffset to 90
+            End_Object            
+
+            Object oMaterial3Code is a cRFWebForm
+                Entry_Item RFIDStation.Material3Code
+                Set phoPrompt to oMaterialWebLookup
+                Set piColumnSpan to 4
+                Set psLabel to ""                
+                Set pbShowLabel to True
+                Set piLabelOffset to 40
+                Set piColumnIndex to 6
+                
+                WebPublishProcedure PromptUpdateCallback 
+                Procedure PromptUpdateCallback Handle hoPrompt
+                    Handle hoDD
+                    RowID riId
+                    Get Server of hoPrompt to hoDD    // this is the prompt's DD
+                    
+                    Send UpdateMaterialData hoDD oMaterial3Code oMaterial3Desc oMaterial3ID                    
+                End_Procedure
+    
+                Procedure Prompt_Callback Handle hoPrompt
+                    WebSet psPromptUpdateCallback of hoPrompt to "PromptUpdateCallback"
+                    WebSet peUpdateMode of hoPrompt to umPromptCustom
+                End_Procedure
+
+            End_Object
+
+            Object oMaterial3Desc is a cRFWebForm
+                Entry_Item RFIDStation.Material3Desc
+                Set piColumnSpan to 5
+                Set psLabel to ""                
+                Set pbShowLabel to True
+                Set piLabelOffset to 1
+                Set piColumnIndex to 10
+                Set pbEnabled to False          
+            End_Object
+            
+            Object oMaterial3ID is a cRFWebForm
+                Entry_Item RFIDStation.Material3ID
+                Set piColumnSpan to 1
+                Set psLabel to ""                
+                Set pbShowLabel to True
+                Set piLabelOffset to 1
+                Set piColumnIndex to 16
+                Set pbVisible to False
+                Set pbEnabled to False          
+            End_Object
+
+
+            Object oSpacer is a cWebSpacer
+                Set pbFillHeight to True
+                Set psCSSClass to "setupSpacer"
+            End_Object
+
+            Object oAddSaveBtn is a cWebButton
+                Set psCaption to "Save"
+                Set piColumnSpan to 4    
+                
+                Procedure OnClick
+                    String sLabel
+                    Boolean bHasRecord bErr
+                    WebGet psCaption to sLabel
+                    If (sLabel = "Add Location") Begin
+                        Send Request_Clear to (Server(Self))
+                        Send EnableEdit True
+                        Send Focus to oDesc
+                    End    
+                    Else Begin
+                        Get Request_Validate_And_Save of (Server(Self)) to bErr
+                        If (not(bErr)) Begin
+                            Send EnableEdit False
+                            Send Focus of oList                         
+                        End
+                    End                    
+                End_Procedure
+            End_Object
+            
+            Object oEditCancelButton is a cWebButton
+                Set piColumnSpan to 4
+                Set piColumnIndex to 4
+                Set psCaption to "Edit"
+                Set psCSSClass to "editButton"
+      
+                Procedure OnClick
+                    String sLabel
+                    Boolean bHasRecord
+                    WebGet psCaption to sLabel
+                    If (sLabel = "Edit") Begin
+                        Send enableEdit True  
+                        Send Focus of oDesc                      
+                    End
+                    Else Begin                        
+                        Get HasRecord of (Server(Self)) to bHasRecord
+                        If (bHasRecord) Begin
+                             Send Find of (Server(Self)) eq 1
+                        End
+                        Else Begin
+                            Send Find of (Server(Self)) First_Record 2 
+                        End                       
+                        Send enableEdit False                       
+                        Send Focus of oList
+                    End                    
+                End_Procedure                
+            End_Object
+            
+//            Object oDeleteButton is a cWebButton
+//                Set piColumnSpan to 4
+//                Set piColumnIndex to 16
+//                Set psCaption to "Delete"
+//                Set psCSSClass to "deleteButton"
+//
+//                Procedure OnClick
+//                    Boolean bEnabled
+//                    String sCode sDesc
+//                    Integer iResponse iErr
+//                    WebGet pbEnabled of oCode to bEnabled
+//                    If (not(bEnabled)) Begin
+//                        If (HasRecord(Server(Self))) Begin
+//                            Get Field_Current_Value of (Server(Self)) Field Location.Code to sCode
+//                            Get Field_Current_Value of (Server(Self)) Field Location.Description to sDesc
+//                            Send MessageDialog of oMessageDialog Self ("Delete Location") ("Delete" * sDesc - "?") MD_YES_NO
+//                            Procedure_Return
+//                        End
+//                    End
+//                    Send Refind_Records of (Server(Self))
+//                    Send Request_Assign of (Server(Self))
+//                    Send EnableEdit (False)
+//                    
+//                    If (not(HasRecord(Server(Self)))) Begin
+//                        Send MoveToFirstRow to oList    
+//                    End
+//                    Send Focus to oList
+//                End_Procedure
+//                
+//                Procedure OnCloseModalDialog Handle hoModalDialog
+//                    Boolean bEnabled
+//                    String sLoginName
+//                    Integer iResponse iErr
+//                    WebGet MD_RESULT of oMessageDialog to iResponse
+//                    If (iResponse ne MDR_YES) Begin
+//                        Procedure_Return
+//                    End
+//                    WebGet pbEnabled of oCode to bEnabled
+//                    If ( (not(bEnabled)) and (HasRecord(Server(Self)))) Begin
+//                        Get Validate_Delete of (Server(Self)) to iErr
+//                        If (not(iErr)) Begin
+//                            Send Request_Delete of (Server(Self))
+//                            Send Request_Clear of (Server(Self))
+//                            Send MoveToFirstRow to oList    
+//                        End
+//                            Else Procedure_Return
+//                    End
+//                    Send EnableEdit False
+//                End_Procedure
+//            End_Object
+            
+        End_Object
+    End_Object 
+    
+    Procedure EnableEdit Boolean bEnabled
+        Boolean bAllowed
+        Get piIsAdmin of ghoWebSessionManager to bAllowed
+        If (not(bAllowed)) Begin
+            WebSet pbEnabled of oAddSaveBtn to False
+            WebSet pbEnabled of oEditCancelButton to False
+//            WebSet pbEnabled of oDeleteButton to False
+            Procedure_Return
+        End        
+        String sVal
+        //WebSet pbEnabled of oCode to bEnabled
+        WebSet pbEnabled of oStationUse to bEnabled
+        WebSet pbEnabled of oEntrance to bEnabled
+        WebSet pbEnabled of oDesc to bEnabled
+        WebSet pbEnabled of oLocationCode to bEnabled
+        WebSet pbEnabled of oMaterialCode to bEnabled
+        WebSet pbEnabled of oPlantCode to bEnabled
+        WebSet pbEnabled of oCustCode to bEnabled
+        WebSet pbEnabled of oTimeZone to bEnabled
+        
+        WebSet pbEnabled of oMaterial0Code to bEnabled
+        WebSet pbEnabled of oMaterial1Code to bEnabled
+        WebSet pbEnabled of oMaterial2Code to bEnabled
+        WebSet pbEnabled of oMaterial3Code to bEnabled
+        
+        WebSet pbEnabled of oAntenna0 to bEnabled
+        WebSet pbEnabled of oAntenna1 to bEnabled
+        WebSet pbEnabled of oAntenna2 to bEnabled
+        WebSet pbEnabled of oAntenna3 to bEnabled
+        
+//        WebSet pbEnabled of oAddress to bEnabled
+//        WebSet pbEnabled of oCity to bEnabled
+//        WebSet pbEnabled of oState to bEnabled
+//        WebSet pbEnabled of oZip to bEnabled
+//        WebSet pbEnabled of oStartDate to bEnabled
+//        WebSet pbEnabled of oEndDate to bEnabled
+//        WebSet pbEnabled of oRFIDTag to bEnabled
+        
+        If (bEnabled) Begin
+            WebSet psCaption of oAddSaveBtn     to "Save"
+            WebSet psCaption of oEditCancelButton   to "Cancel"
+        End
+        Else Begin
+            //WebSet psCaption of oAddSaveBtn     to "Add Location"
+            WebSet psCaption of oEditCancelButton   to "Edit"
+        End
+    End_Procedure
+    
+    Procedure OnShow
+        Send EnableEdit False
+        String sCompanyGUID sDivGUID
+        Get psCompanyGUID of oSessionManager to sCompanyGUID
+        Get psBusinessUnitGUID of oSessionManager to sDivGUID     
+             
+        Clear Company 
+        Move sCompanyGUID to Company.ID
+        Send Request_Find of oCompanyDD EQ Company.File_Number 1
+        Send Rebuild_Constraints to oDivisionDD
+        
+        //Clear BusinessUnits2
+        //Move sDivGUID to BusinessUnits2.ID
+        //Send Request_Find of oDivisionDD EQ BusinessUnits2.File_Number 1
+        
+        Clear BusinessUnits
+        Move sDivGUID to BusinessUnits.Id
+        Send Request_Find of oDivisionDD eq BusinessUnits.File_Number 1
+        //WebSet psDivisionID to Division.ID
+        //Send Rebuild_Constraints to oMaterialDD
+        //Send Find of oDivisionDD First_Record 2
+        //Send Rebuild_Constraints of oRFIDStationDD
+        Send Find of oRFIDStationDD First_Record 2        
+        Send enableEdit False
+        
+        Send MoveToFirstRow to oList        
+    End_Procedure
+End_Object

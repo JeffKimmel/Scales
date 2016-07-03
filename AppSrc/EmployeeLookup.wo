@@ -1,0 +1,98 @@
+// C:\Visual DataFlex 17.1 Examples\WebOrder\AppSrc\CustomerWebLookup.wo
+// Customer Lookup List
+//
+
+Use cWebModalDialog
+Use cWebPanel.pkg
+Use cWebButton.pkg
+Use cWebPromptList.pkg
+Use cWebColumn.pkg
+
+Use cWebAppUserDataDictionary.dd
+Register_Object oSessionManager
+
+Object oEmployeeWebLookup is a cWebModalDialog
+    
+    Set piColumnCount to 6
+    Set psCaption to "Employee Lookup List"
+    Set piWidth to 550
+    Set piHeight to 400
+    
+    Object oEmployeeDD is a cWebAppUserDataDictionary
+        Procedure OnConstrain
+            Handle iSession
+            String sBUGUID
+            Move (oSessionManager(Self)) to iSession
+            If (iSession > 0) Begin
+                Get psBusinessUnitGUID of ghoWebSessionManager to sBUGUID
+                Constrain WebAppUser.BUGUID eq sBUGUID
+                Constrain WebAppUser.IsActive eq True
+            End
+        End_Procedure
+
+    End_Object
+    
+    Set Main_DD to oEmployeeDD
+    Set Server  to oEmployeeDD
+
+    Object oWebMainPanel is a cWebPanel
+        Set piColumnCount to 6
+
+        Object oPromptList is a cWebPromptList
+            Set pbFillHeight to True
+            Set piColumnSpan to 6
+            Set pbAutoServer to False
+
+            Object oCode is a cWebColumn
+                Entry_Item WebAppUser.AppID
+                Set psCaption to "Employee"
+                Set piWidth to 150
+            End_Object 
+
+            Object oName is a cWebColumn
+                Entry_Item WebAppUser.FirstName
+                Set psCaption to "First Name"
+                Set piWidth to 200
+            End_Object 
+
+            Object oLast is a cWebColumn
+                Entry_Item WebAppUser.LastName
+                Set psCaption to "Last Name"
+                Set piWidth to 200
+            End_Object 
+        End_Object 
+
+        Object oOkButton is a cWebButton
+            Set psCaption to "OK"
+            Set piColumnSpan to 1
+            Set piColumnIndex to 3
+
+            Procedure OnClick
+                Send Ok of oPromptList
+            End_Procedure
+        End_Object 
+
+        Object oCancelButton is a cWebButton
+            Set psCaption to "Cancel"
+            Set piColumnSpan to 1
+            Set piColumnIndex to 4
+            Procedure OnClick
+                Send Cancel of oPromptList
+            End_Procedure
+
+        End_Object 
+
+    End_Object 
+
+    Set pbServerOnShow to True
+    Set pbServerOnSubmit to True
+    Procedure OnShow 
+        Send Rebuild_Constraints to oEmployeeDD        
+        Send InitializePromptList of oPromptList
+    End_Procedure 
+
+    Procedure OnSubmit 
+        Send Ok of oPromptList
+    End_Procedure 
+    
+End_Object 

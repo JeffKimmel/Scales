@@ -1,0 +1,127 @@
+Use cWebHtmlBox.pkg
+
+Class cWebHtmlMenuItem is a cWebHtmlBox
+    
+    Procedure Construct_Object
+        Property Integer piViewToShow
+        Property String psLIActiveClass
+        Property String psAnchorLine
+        Property Integer piHeaderObject
+        Property Boolean  pbMenuHeader
+        Property Integer[] piChildItems
+        Forward Send Construct_Object
+    End_Procedure
+
+    Procedure End_Construct_Object
+        Set piColumnSpan to 5
+        Set pbServerOnClick to True
+        {WebProperty = true}
+        Property Boolean bOpen 
+
+        Forward Send End_Construct_Object
+        Send setHTML False False
+        Send RegisterMenuItem Self
+    End_Procedure
+
+    Procedure ToggleRender                
+        Integer iHdrObject
+        Boolean isVisible
+        Get piHeaderObject to iHdrObject
+        WebGet bOpen of iHdrObject to isVisible
+        WebSet pbRender to isVisible
+    End_Procedure
+    
+    Procedure OnClick String sId String sParam
+        Integer iView iHdrObject iShrinkObj
+        Boolean menuHeader
+        
+        Get piHeaderObject to iHdrObject
+        Get pbMenuHeader to menuHeader
+        
+        If (not(menuHeader)) Begin
+            If (iHdrObject <> 0) Send shrinkHeaderItems (iHdrObject)
+             Else Send shrinkHeaderItems (Self)
+        End
+        
+        Forward Send OnClick sId sParam
+        If (menuHeader) Begin
+            Boolean isOpen
+            WebGet bOpen to isOpen
+            WebSet bOpen to (not(isOpen))
+            Send DoToggle     
+            Procedure_Return           
+        End
+        
+        Send resetAllHTML
+        Get piViewToShow to iView
+        Send Show of iView
+        Send setHTML True True
+        If (iHdrObject) Begin
+            Send setHTML of iHdrObject True True
+        End
+    End_Procedure
+
+    Procedure setHTML Boolean isActive Boolean webSetTrue
+        String sHTML
+        String liClass anchorLine
+        Integer iHdrObj isOpen
+        Boolean menuHeader
+        
+        Get piHeaderObject to iHdrObj
+        Get psAnchorLine to anchorLine
+        Get pbMenuHeader to menuHeader
+
+        If (iHdrObj) Begin
+            WebGet bOpen of iHdrObj to isOpen    
+        End        
+        If (menuHeader) Begin
+            Move "submenu " to liCLass
+        End
+        Else Begin 
+            Move "" to liCLass
+        End
+        
+        If (isActive) Begin
+            Get psLIActiveClass to liClass
+        End
+        Else If (isOpen) Begin
+           Move " active open submenuItem" to liClass
+        End
+                
+        Move         "<ul class='nav nav-list'>" to sHTML
+        Append sHTML "  <li class='" liClass "'>"
+        //Append sHTML "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='icon-dashboard'></span><span class='menu-text'>Home</span></a>"
+        Append sHTML anchorLine
+        Append sHTML "  </li>"
+        Append sHTML "</ul>"
+        If (webSetTrue) WebSet psHtml to sHTML
+         Else  Set psHtml to sHTML  
+    End_Procedure    
+    
+    Procedure Shrink
+        WebSet bOpen of Self to False
+        Send DoToggle
+    End_Procedure
+    
+    Procedure RegisterChildMenuItem Integer iChildItem
+        Integer[] thisChildItems
+        Integer iSize
+        Get piChildItems to thisChildItems
+        Move (SizeOfArray(thisChildItems)) to iSize
+        Move iChildItem to thisChildItems[iSize]        
+        Set piHeaderObject of iChildItem to Self
+        Set piChildItems to thisChildItems
+    End_Procedure
+            
+    Procedure DoToggle
+        Integer[] thisChildItems
+        Integer iSize i
+        Get piChildItems to thisChildItems
+        Move (SizeOfArray(thisChildItems)) to iSize
+        Decrement iSize
+        For i from 0 to iSize
+            Send ToggleRender to thisChildItems[i]
+        Loop
+    End_Procedure
+    
+End_Class

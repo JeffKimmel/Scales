@@ -1,0 +1,176 @@
+Use cWebView.pkg
+Use cWebPanel.pkg
+Use cWebButton.pkg
+Use cWebForm.pkg
+Use cWebLabel.pkg
+Use cWebHtmlBox.pkg
+
+Register_Object oHomeMenuItem
+Register_Object oNavLeft
+
+Object oLogin is a cWebView
+    Set psCSSClass to "loginView"
+    // Your DDO structure will go here
+    Set piMinWidth to 1030
+    Delegate Set phoDefaultView to oLogin
+    Set pbServerOnShow to True
+    
+    Object oWebTopPanel is a cWebPanel
+        Set peRegion to prTop
+        Set piHeight to 70
+        
+        Object oLogo is a cWebImage
+            Set piHeight to 50
+            Set psLocalFile to "C:\WebApps\Scales\AppHtml\Images\RF_Logo.jpg"     
+        End_Object
+        
+        
+    End_Object 
+
+    Object oWebMainPanel is a cWebPanel
+        Set piColumnCount to 6
+        Set psCSSClass to "panelRight"
+        
+        Object oLeft is a cWebHtmlBox
+            Set piColumnSpan to 6
+            Set psHtml to '<div id="rightInner"> ;
+	                          <h3>Log in to HCSSCloud.com</h3> ;
+	                          <a href="#" id="WhatIsIt">What is HCSSCloud?</a>;
+	                       </div>'
+        End_Object
+        
+        Object oLoginName is a cWebForm
+            Set piColumnIndex to 0
+            Set piColumnSpan to 5
+            
+            Set psLabel to "Login Name:"
+            Set peLabelPosition to lpTop
+            Set peLabelAlign to alignLeft
+            Set piMaxLength to 20
+        End_Object
+        
+        Object oPassword is a cWebForm
+            Set piColumnIndex to 0
+            Set piColumnSpan to 5
+            Set psLabel to "Password:"
+            Set pbPassword to True
+            Set peLabelAlign to alignLeft
+            Set peLabelPosition to lpTop
+            Set piMaxLength to 20
+        End_Object   
+        
+        Object oSubmit is a cWebButton
+            Set psCSSClass to 'btnLogin'
+            Set piColumnIndex to 5
+            Set piColumnSpan to 0   
+            Procedure OnClick
+                Send DoLogin
+            End_Procedure         
+        End_Object
+        
+        Object oWarning is a cWebLabel
+            Set piColumnIndex to 2
+            Set piColumnSpan to 4
+            Set pbVisible to False
+            Set psCaption to "Invalid loginname or password."
+            Set psCSSClass to "Warning"
+            Set peAlign to alignCenter
+        End_Object
+
+        Object oExtraLinks is a cWebHtmlBox
+            Set piColumnSpan to 6
+            Set psHtml to '<div id="rightInner"> ;
+	                          <a href="#" id="forgotPass">Forgot my user name or password</a><br/>;
+	                          <a href="http://www.hcsscloud.com/Setup/CreateCompany" target="_blank" id="registerCompany">Register new company</a>;
+	                       </div>'
+        End_Object
+
+    End_Object 
+
+    Object oWebLeftPanel is a cWebPanel
+        Set peRegion to prLeft
+        Set piWidth to 650
+        Set psCSSClass to "panelLeft"
+        Set piHeight to 520
+        
+        Object oLeft is a cWebHtmlBox
+            Set psHtml to "	 <div><div id='text1'>Your job's business network.</div><div id='text2'>Connected like never before.</div></div>"
+        End_Object
+        
+    End_Object 
+
+    Object oWebBottomPanel is a cWebPanel
+        Set peRegion to prBottom
+        Set piColumnCount to 10
+        
+        Object oLegalese is a cWebLabel
+            Set piColumnSpan to 3
+            Set psCaption to "Copyright 2011 Heavy Construction Systems Specialists, Inc. (HCSS)"
+        End_Object
+
+        Object oInfo is a cWebHtmlBox
+            Set piColumnIndex to 5
+            Set piColumnSpan to 3
+            Set psHtml to '<div id="tips"><span id="bam">Did you know ? </span><br><br>You can Use your <a href="http://myhcss.com/" target="_blank">myhcss.com</a> account information to log in here!<br></div>'
+        End_Object
+
+        Object oWebFrame is a cWebIFrame
+            Set pbVisible to False
+            Set piHeight to 1
+            Set pbFillHeight to True
+            Set piColumnSpan to 20
+            Set pbRender to False
+        End_Object        
+    End_Object 
+
+    Procedure DoLogin
+        String sLoginName sPassword
+        String DAIUser DAIPassword sURL
+        Boolean bResult
+        Integer iTest
+        Handle hoDefaultView
+        
+        WebGet psValue of oLoginName to sLoginName
+        WebGet psValue of oPassword to sPassword
+        If ( (sLoginName = "") and (sPassword = "")) Begin
+            Move "jeff.kimmel@hcss.com" to sLoginName
+            Move "qwerty" to sPassword
+        End
+        
+        Get UserLogin of ghoWebSessionManager sLoginName sPassword to bResult
+        
+        If (bResult) Begin
+            WebGet piLoginDAIUser of oWebApp to iTest
+            If (iTest <> 0) Begin
+                Send refreshURL to iTest
+            End
+            Send Hide of oLogin
+            //Send Show of oDashboard
+            WebSet psValue of oLoginName to ""
+            WebSet psValue of oPassword  to ""
+            WebSet pbVisible of oWarning to False
+            WebSet pbRender of oNavLeft to True
+            WebSet pbRender of oHeaderAll to True
+                
+            Send OnClick to (oHomeMenuItem(oNavLeft(Self))) "InitLoad" "InitLoad"
+        End
+        Else Begin
+            WebSet pbVisible of oWarning to True
+        End
+    End_Procedure
+    
+    
+    Set pbServerOnSubmit to True
+    Procedure OnSubmit
+         Send DoLogin
+    End_Procedure
+    
+    Procedure OnShow
+        //WebSet psURL of oWebFrame to "http://50.57.171.86/Dashboard/default.asp?FRW=99"
+        String sURL
+        //Get psDAIURL of oWebApp to sURL
+        Move "http://50.57.171.86/ai.asp?UID=Dashboard&PW=dashboard&DAI_R=1116" to sURL
+        WebSet psURL of oWebFrame to sURL
+
+    End_Procedure
+End_Object

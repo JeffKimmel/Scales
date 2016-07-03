@@ -1,0 +1,269 @@
+Use cWebSessionManagerStandard.pkg
+Open Company 
+Class cScalesSessionManger is a cWebSessionManagerStandard
+    
+    Procedure Construct_Object
+        Property String psUserGUID
+        Property String psCompanyGUID
+        Property String psBusinessUnitGUID
+        Property String psUserPassCode
+        Property String psUserDAI_User
+        Property String psUserDAI_Password
+        //Property String psDAIBusinessUnit
+        Property Integer piIsAdmin
+        Property Integer piDashboardRefresh
+        Forward Send Construct_Object        
+    End_Procedure
+End_Class
+
+Object oSessionManager is a cScalesSessionManger
+    Function ValidateSession String sSessionKey Returns Boolean
+        DateTime dtLastAccess dtCurrent
+        TimeSpan tsDiff
+        Integer iErr iSessionTimeout iSpanMinutes
+        Boolean bResult bCreatingNewSession
+        Boolean bLogWebSession bLoadWebApp 
+        Integer eLoginMode
+        String sTime
+        Handle hoSessionDD hoUserDD       
+        
+        Get phoSessionDD to hoSessionDD
+        Get phoUserDD to hoUserDD
+        
+        Get pbLogWebSession to bLogWebSession
+        //FFFFGet pbLoadWebAppValidateSession of ghoWebApp to bLoadWebApp
+        Get peLoginMode to eLoginMode
+        
+        // for this object, you can only disable logging if login completely is disabled
+        If (not(bLogWebSession) and (eLoginMode<>lmLoginNone)) Begin
+            Error DFERR_PROGRAM C_$WebSessionLoggingMustBeEnabled
+            Function_Return False
+        End
+
+        //  Clear session properties
+        Set psUsername to ""
+        Set psLoginName to ""
+        Set piUserrights to 0
+        Set piIsAdmin to False
+        Set piDashboardRefresh to 5
+        
+        If not bLogWebSession Begin
+            Forward Get ValidateSession sSessionKey to bResult
+            Function_Return bResult
+        End        
+        
+        Move False to bResult
+        Get piSessionTimeout to iSessionTimeout 
+        
+        //  Check if session exists
+        Send Clear of hoSessionDD
+        Move sSessionKey to WebAppSession.SessionKey
+        Send Find of hoSessionDD EQ Index.1
+            
+        If (Found) Begin
+            //  Calculate timespan between now and last access time
+            Move (CurrentDateTime()) to dtCurrent
+            Move WebAppSession.LastAccessDate to dtLastAccess
+            Get StringToTime of hoSessionDD dtLastAccess WebAppSession.LastAccessTime to dtLastAccess
+            Move (dtCurrent - dtLastAccess) to tsDiff
+            Move (SpanTotalMinutes(tsDiff)) to iSpanMinutes
+            
+            //  Check if session didn't time out
+            If ((iSessionTimeout <= 0 or (iSpanMinutes < iSessionTimeout)) and WebAppSession.Active = "Y") Begin
+                Forward Get ValidateSession sSessionKey to bResult
+                   
+                If (bResult) Begin
+                    //  Update session record
+                    Get TimeToString of hoSessionDD dtCurrent to sTime 
+                    Set Field_Changed_Value of hoSessionDD Field WebAppSession.LastAccessDate to dtCurrent
+                    Set Field_Changed_Value of hoSessionDD Field WebAppSession.LastAccessTime to sTime
+                    Set Field_Changed_Value of hoSessionDD Field WebAppSession.UseCount to (WebAppSession.UseCount + 1)
+                    Get Request_Validate of hoSessionDD to iErr
+                    If (iErr) Begin
+                        // this should not happen. If it does its a programming error
+                        Error DFERR_PROGRAM C_$WebAppSesionValidateFailed
+                        Function_Return False
+                    End
+                    Send Request_Save of hoSessionDD
+                    
+                    //  Update user properties
+                    If (HasRecord(hoUserDD)) Begin
+                        Set psUsername to (Trim(WebAppUser.FullName))
+                        Set psLoginName to (Trim(WebAppUser.LoginName))
+                        Set piUserRights to WebAppUser.Rights
+                        Set psUserGUID to WebAppUser.UserGUID
+                        Set psCompanyGUID to (Uppercase(Trim(WebAppUser.CompanyGUID)))
+                        Set psBusinessUnitGUID to (Uppercase(Trim(WebAppUser.BUGUID)))
+                        Set psUserPassCode to (Trim(WebAppUser.Passcode))
+                        Set psUserDAI_User to (Trim(WebAppUser.DAIUser))
+                        Set psUserDAI_Password to (Trim(WebAppUser.DAIPassword))
+                        Set piIsAdmin to WebAppUser.Admin
+                        Set piDashboardRefresh to WebAppUser.RefreshTimer
+                    End
+                End
+            End
+            Else Begin
+                // Test the Creating New Session Flag to protect against infinite recursion....
+                Get pbCreatingNewSession to bCreatingNewSession
+                
+                If (not(bCreatingNewSession) and not(bLoadWebApp)) Begin
+                    Set pbCreatingNewSession to True                    
+                    Send RecreateSession to ghoWebApp
+                    Send NavigateRefresh of ghoWebApp          // refresh the WebApp at the client (triggers a login)
+                    Error 950 "Your application session has timed out or is inactive, please login again."
+                    Set pbCreatingNewSession to False
+                End
+            End
+        End
+        Else If (not(bLoadWebApp)) Begin
+            //Error 951 "Session key not known (reload page to recreate session)"
+        End
+        
+        Function_Return bResult
+    End_Function
+    
+    Function UserLogin String sLoginName String sPassword Returns Boolean
+        tsAllLoginInfor myRes
+        Integer iNumLogins
+        
+//        Get credLogin of oApplication sLoginName sPassword to myRes
+//        If ((myRes.loginResult.KeyWord = "Success") and (myRes.DAIResult.KeyWord = "Success")) Begin
+//            Move sLoginName to WebAppUser.LoginName
+//            Find eq WebAppUser by Index.1
+//            If (FindErr) Begin
+//                Reread
+//                  Move sPassword to WebAppUser.Password
+//                  Move (Uppercase("{" + myRes.loginResult.UsrInfo.UserId + "}")) to WebAppUser.UserGUID
+//                  Move (Uppercase("{" + myRes.loginResult.UsrInfo.CompanyId + "}")) to WebAppUser.CompanyGUID
+//                  Move (Uppercase("{" + myRes.loginResult.UsrInfo.BusinessUnitId + "}")) to WebAppUser.BUGUID
+//                  Move myRes.loginResult.UsrInfo.PassCode to WebAppUser.Passcode
+//                  Move myRes.DAIResult.UserName to WebAppUser.DAIUser
+//                  Move myRes.DAIResult.Password to WebAppUser.DAIPassword
+//                  SaveRecord WebAppUser
+//                Unlock
+//            End
+//            
+//        End
+//        Else Function_Return False
+        
+        String sSessionKey sUserPassword
+        Handle hoSessionDD hoUserDD       
+        
+        Get phoSessionDD to hoSessionDD
+        Get phoUserDD to hoUserDD
+        Integer iErr eLoginMode
+        
+        // Refind session record
+        Get psSessionKey to sSessionKey
+        Send Clear of hoSessionDD
+        Move sSessionKey to WebAppSession.SessionKey
+        Send Find of hoSessionDD EQ Index.1
+        
+        If (Found and WebAppSession.SessionKey = sSessionKey) Begin
+            Get peLoginMode to eLoginMode
+            
+            // if login is not required, we will allow for a blank name and password, which gives you access to whatever
+            // your have access to with not being logged in. We consider this to be a success, even if you are not logged in.
+            If (eLoginMode <> lmLoginRequired and Trim(sLoginName) = "" and Trim(sPassword) = "") Begin
+                Set psUsername to ""
+                Set psLoginName to ""
+                Set piUserrights to 0
+                Set piIsAdmin to False
+                Set piDashboardRefresh to 5
+        
+                Send NotifyChangeRights
+                Function_Return True
+            End
+            
+            //  Find the user
+            Move sLoginName to WebAppUser.LoginName
+            Send Find of hoUserDD EQ Index.2
+            If (sPassword ne Trim(WebAppUser.Password)) Begin
+                Function_Return false
+            End
+            Get Field_Current_Value of hoUserDD Field WebAppUser.NumLogins to iNumLogins
+            Increment iNumLogins
+            //JMK!!!!!  No check needed as we've already authenticated through Credentials.
+            //          Just save the info & move on!!!
+            // Check username and password
+            //Get Field_Current_Value of hoUserDD Field WebAppUser.Password to sUserPassword
+            
+            //If (Found and (Lowercase(sLoginName) = Lowercase(Trim(WebAppUser.LoginName))) and Trim(sUserPassword) = Trim(sPassword)) Begin
+                // Store the login
+                
+                Set Field_Changed_Value of hoUserDD Field WebAppUser.LastLogin   to (CurrentDateTime())
+                Set Field_Changed_Value of hoUserDD Field WebAppUser.Password    to sPassword
+                Set Field_Changed_Value of hoUserDD Field WebAppUser.NumLogins   to iNumLogins
+            
+                //Set Field_Current_Value of hoUserDD Field WebAppUser.NumLogins   to iNumLogins
+                
+                //JMK Do not update this anymore, we're moving away from credentials!!!!
+                //Set Field_Changed_Value of hoUserDD Field WebAppUser.UserGUID    to (Uppercase("{" + myRes.loginResult.UsrInfo.UserId + "}"))
+                //Set Field_Changed_Value of hoUserDD Field WebAppUser.CompanyGUID to (Uppercase("{" + myRes.loginResult.UsrInfo.CompanyId + "}"))
+                //Set Field_Changed_Value of hoUserDD Field WebAppUser.BUGUID      to (Uppercase("{" + myRes.loginResult.UsrInfo.BusinessUnitId + "}"))
+                //Set Field_Changed_Value of hoUserDD Field WebAppUser.Passcode    to myRes.loginResult.UsrInfo.PassCode
+                //Set Field_Changed_Value of hoUserDD Field WebAppUser.DAIUser     to myRes.DAIResult.UserName 
+                //Set Field_Changed_Value of hoUserDD Field WebAppUser.DAIPassword to myRes.DAIResult.Password
+                
+                Get Request_Validate of hoSessionDD to iErr
+                If (iErr) Begin
+                    // this should not happen. If it does its a programming error
+                    Error DFERR_PROGRAM C_$WebAppSesionValidateFailed
+                    Function_Return False
+                End
+                
+                Send Request_Save of hoSessionDD
+                
+                // Update session properties
+                Set psUsername to (Trim(WebAppUser.FullName))
+                Set psLoginName to (Trim(WebAppUser.LoginName))
+                Set piUserrights to WebAppUser.Rights
+                Set psUserGUID to WebAppUser.UserGUID
+                Set psCompanyGUID to (Uppercase(Trim(WebAppUser.CompanyGUID)))
+                Set psBusinessUnitGUID to (Uppercase(Trim(WebAppUser.BUGUID)))
+                Set psUserPassCode to (Trim(WebAppUser.Passcode))
+                Set psUserDAI_User to (Trim(WebAppUser.DAIUser))
+                Set psUserDAI_Password to (Trim(WebAppUser.DAIPassword))
+                Set piIsAdmin to WebAppUser.Admin
+                Set piDashboardRefresh to WebAppUser.RefreshTimer
+        
+                Send NotifyChangeRights
+                Send SetWelcomeLine of oWebApp
+                Function_Return True
+            //End
+        End
+          
+        Function_Return False
+    End_Function
+
+    Function fGetWelcomeLineInfo String ByRef sUserName String ByRef sCompanyName String ByRef sLastLoggedIn Returns Boolean
+        String sLoginName sCompanyGUID
+        Boolean bOk
+        Get psLoginName of oSessionManager to sLoginName
+        Clear WebAppUser
+        Move sLoginName to WebAppUser.LoginName
+        //Move (psCompanyID(ghoWebSessionManager)) to WebAppUser.CompanyGUID
+        Find eq WebAppUser by Index.2
+        //Find eq WebAppUser by Index.4
+        If (Found) Begin
+            //Move (trim(WebAppUser.LastName) + ", " + trim(WebAppUser.FirstName)) to sUserName
+            Move (trim(WebAppUser.FirstName) + " " + trim(WebAppUser.LastName)) to sUserName
+            Move WebAppUser.LastLogin to sLastLoggedIn
+            Move WebAppUser.CompanyGUID to sCompanyGUID
+            Clear Company
+            Move sCompanyGUID to Company.ID
+            Find eq Company by Index.1
+            If (Found) Begin
+                Move (trim(Company.CoName)) to sCompanyName
+            End
+            Move True to bOk
+        End
+        Else Begin
+           Move False to bOk
+        End
+        Function_Return bOk
+    End_Function
+    
+    
+End_Object
+

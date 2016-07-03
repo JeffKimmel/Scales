@@ -1,0 +1,199 @@
+Use cWebView.pkg
+Use cWebPanel.pkg
+Use cWebButton.pkg
+Use cWebForm.pkg
+Use cWebLabel.pkg
+Use cWebHtmlBox.pkg
+Use cTruckDataDictionary.dd
+Use cli.pkg
+Use cRFWebForm.pkg
+
+Open Truck
+
+
+Object oSettingsDrivers is a cWebView    
+    // Your DDO structure will go here
+    Set pbServerOnShow to True
+    
+    Object oTruckDD is a cTruckDataDictionary        
+        Procedure OnConstrain
+            String sCompGUID sBUGUID sConstraint
+            Get psCompanyGUID of ghoWebSessionManager to sCompGUID
+            Get psBusinessUnitGUID of ghoWebSessionManager to sBUGUID
+            Constrain Truck.CompanyID eq  sCompGUID
+            Constrain Truck.DriverCode ne ""
+        End_Procedure                          
+    End_Object          
+    
+    Set Main_DD to oTruckDD
+    Set Server  to oTruckDD
+    
+    Object oWebMainPanel is a cWebPanel
+        Set piColumnCount to 4        
+        
+        Object oWebLeftPanel is a cWebPanel
+            Set peRegion to prLeft
+            Set pbResizable to True
+            Set piWidth to 200
+            Set piMinWidth to 200
+            Set psCSSClass to "viewLeft"
+            
+            Object oList is a cWebList
+                Set piColumnSpan to 4
+                Set pbFillHeight to True
+                Set Ordering to 6
+                Object oColumn is a cWebColumn
+                    Set psCaption to "Driver"
+                    Entry_Item Truck.DriverCode
+                End_Object
+            End_Object
+            
+            Object oAddBtn is a cWebButton
+                    Set psCaption to "Add Driver"
+                    
+                    Procedure OnClick
+                        Send Request_Clear to (Main_DD(Self))
+                        Send EnableEdit True
+                        Send Focus to oCode
+                    End_Procedure
+            End_Object
+        End_Object
+
+        Object oWebMainPanel is a cWebPanel
+            Set piColumnCount to 20
+            Set psCSSClass to "viewCenter"
+    
+            Object oHdrLine is a cWebLabel
+                    Set psCaption to "Setup Drivers"
+                    Set psCSSClass to "hdrLabel"
+                    Set piColumnSpan to 20
+            End_Object
+
+            Object oCode is a cRFWebForm
+                Set psLabel to "Driver Code:"
+                Set piColumnSpan to 10
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item Truck.DriverCode
+            End_Object
+            
+            Object oDesc is a cRFWebForm
+                Set psLabel to "Name:"
+                Set piColumnSpan to 10
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item Truck.DriverName
+            End_Object
+
+            Object oPhone is a cRFWebForm
+                Set psLabel to "Phone:"
+                Set piColumnSpan to 10
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item Truck.DriverPhone
+            End_Object
+
+//            Object oComID is a cWebForm
+//                Set psLabel to "Company ID:"
+//                Set piColumnSpan to 10
+//                Set peLabelAlign to alignLeft
+//                Set peLabelPosition to lpLeft
+//                Entry_Item Plant.CompanyID
+//            End_Object
+                        
+            Object oSpacer is a cWebSpacer
+                Set pbFillHeight to True
+                Set psCSSClass to "setupSpacer"
+            End_Object
+            
+            Object oEditSaveButton is a cWebButton
+                Set piColumnSpan to 4
+                Set psCaption to "Edit"
+                Set psCSSClass to "editButton"
+                
+                Procedure OnClick
+                    Boolean bEnabled bErr
+                    WebGet pbEnabled of oCode to bEnabled
+                    If (bEnabled) Begin
+                        Get Request_Validate_And_Save of (Main_DD(Self)) to bErr
+                        If (not(bErr)) Send EnableEdit (False)
+                    End
+                    Else Begin
+                        Send EnableEdit True
+                    End
+                End_Procedure
+            End_Object
+            
+            Object oCancelDeleteButton is a cWebButton
+                Set piColumnSpan to 2
+                Set piColumnIndex to 4
+                Set psCaption to "Delete"
+                Set psCSSClass to "deleteButton"
+
+                Procedure OnClick
+                    Boolean bEnabled
+                    String sCode sDesc
+                    Integer iResponse iErr
+                    WebGet pbEnabled of oCode to bEnabled
+                    If (not(bEnabled)) Begin
+                        If (HasRecord(Main_DD(Self))) Begin
+                            Get Field_Current_Value of (Main_DD(Self)) Field Truck.DriverName to sDesc
+                            Send MessageDialog of oMessageDialog Self ("Delete Driver") ("Delete" * sDesc - "?") MD_YES_NO
+                        End
+                    End
+                    Send Refind_Records of (Main_DD(Self))
+                    Send Request_Assign of (Main_DD(Self))
+                    Send EnableEdit (False)
+                    
+                    If (not(HasRecord(Main_DD(Self)))) Begin
+                        Send MoveToFirstRow to oList    
+                    End
+                    Send Focus to oList
+                End_Procedure
+                
+                Procedure OnCloseModalDialog Handle hoModalDialog
+                    Boolean bEnabled
+                    String sLoginName
+                    Integer iResponse iErr
+                    WebGet MD_RESULT of oMessageDialog to iResponse
+                    If (iResponse ne MDR_YES) Begin
+                        Procedure_Return
+                    End
+                    WebGet pbEnabled of oCode to bEnabled
+                    If ( (not(bEnabled)) and (HasRecord(Main_DD(Self)))) Begin
+                        Get Validate_Delete of (Main_DD(Self)) to iErr
+                        If (not(iErr)) Begin
+                            Send Request_Delete of (Main_DD(Self))
+                            Send Request_Clear of (Main_DD(Self))
+                            Send MoveToFirstRow to oList    
+                        End
+                            Else Procedure_Return
+                    End
+                    Send EnableEdit False
+                End_Procedure
+            End_Object
+            
+        End_Object
+    End_Object 
+    
+    Procedure EnableEdit Boolean bEnabled
+        String sVal
+        WebSet pbEnabled of oCode  to bEnabled
+        WebSet pbEnabled of oDesc  to bEnabled
+        WebSet pbEnabled of oPhone to bEnabled
+        If (bEnabled) Begin
+            WebSet psCaption of oCancelDeleteButton to "Cancel"
+            WebSet psCaption of oEditSaveButton     to "Save"
+        End
+        Else Begin
+            WebSet psCaption of oCancelDeleteButton to "Delete"
+            WebSet psCaption of oEditSaveButton     to "Edit"                    
+        End
+    End_Procedure
+    
+    Procedure OnShow
+        Send EnableEdit False
+        Send Rebuild_Constraints to (Main_DD(Self))
+        Send MoveToFirstRow to oList        
+    End_Procedure
+End_Object

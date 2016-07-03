@@ -1,0 +1,195 @@
+Use VdfBase.pkg
+Use CryptographerConstants.pkg
+
+External_Function CryptSetKeyParam "CryptSetKeyParam" advapi32.dll ;
+    Handle hKey ;
+    Integer dwParam ;
+    Pointer pbData ;
+    Integer dwFlags ;
+    Returns Boolean
+
+Struct BLOBHEADER
+    UChar bType
+    UChar bVersion
+    UShort reserved
+    UInteger aiKeyAlg
+End_Struct
+
+Struct AES256KEYBLOB
+    BLOBHEADER hdr
+    Integer keySize
+    UChar[32] bytes
+End_Struct
+
+Define PLAINTEXTKEYBLOB for ($8)
+Define CUR_BLOB_VERSION for 2
+
+Class cAesCrypt is a cObject
+    // Encrypts text into base-64 string
+    Function Encrypt64 String sPlainText Returns String
+        String sBinary sBase64
+        Address pBase64
+        Integer iVoid
+
+        // Encrypt text to base-64
+        Get Encrypt sPlainText to sBinary
+        Move (Base64Encode(AddressOf(sBinary), Length(sBinary))) to pBase64
+        Move pBase64 to sBase64
+        Move (Free(pBase64)) to iVoid
+        
+        Function_Return sBase64
+    End_Function  // Encrypt64
+
+    // Decrypts text from base-64 string
+    Function Decrypt64 String sData Returns String
+        String sPlainText sBinary
+        Integer iLen iVoid
+        Address pBinary
+
+        // Decrypt from base-64
+        Move (Base64Decode(AddressOf(sData), &iLen)) to pBinary
+        Move (Repeat(Character(0), iLen)) to sBinary
+        Move (CopyMemory(AddressOf(sBinary), pBinary, iLen)) to iVoid
+        Move (Free(pBinary)) to iVoid
+        Get Decrypt sBinary to sPlainText
+
+        Function_Return sPlainText
+    End_Function  // Decrypt64
+
+    Function Encrypt String sData Returns String
+        String sResult
+        Get Crypt sData True to sResult
+        Function_Return sResult
+    End_Function  // Encrypt
+
+    Function Decrypt String sData Returns String
+        String sResult
+        Get Crypt sData False to sResult
+        Function_Return sResult
+    End_Function  // Decrypt
+
+    { Visibility = Private }
+    Function Crypt String sData Boolean bEncrypt Returns String
+        String sResult
+        Handle hProv hKey
+        Integer dwCount
+        Boolean bOk
+        UChar[32] key
+        UChar[16] iv
+        UChar[] data
+        AES256KEYBLOB tBlob
+
+        Move 0 to hProv
+        Move 0 to hKey
+        If (CryptAcquireContext(AddressOf(hProv), 0, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) Begin
+            Get CryptKey to key
+            Get CryptIV to iv
+            Move PLAINTEXTKEYBLOB to tBlob.hdr.bType
+        	Move CUR_BLOB_VERSION to tBlob.hdr.bVersion
+        	Move 0 to tBlob.hdr.reserved
+        	Move CALG_AES_256 to tBlob.hdr.aiKeyAlg
+        	Move 32 to tBlob.keySize
+        	Move (CopyMemory(AddressOf(tBlob.bytes), AddressOf(key), tBlob.keySize)) to bOk
+            If (CryptImportKey(hProv, AddressOf(tBlob), SizeOfType(AES256KEYBLOB), 0, 0, AddressOf(hKey))) Begin
+                If (CryptSetKeyParam(hKey, KP_IV, AddressOf(iv), 0)) Begin
+                    Get ByteData sData (&dwCount) to data
+                    If (bEncrypt) Move (CryptEncrypt(hKey, 0, True, 0, AddressOf(data), AddressOf(dwCount), SizeOfArray(data))) to bOk
+                    Else Move (CryptDecrypt(hKey, 0, True, 0, AddressOf(data), AddressOf(dwCount))) to bOk
+                    If (bOk) Get ByteArrayToString data dwCount to sResult
+                End
+            End
+        End
+
+        If (hKey) Move (CryptDestroyKey(hKey)) to bOk
+        If (hProv) Move (CryptReleaseContext(hProv, 0)) to bOk
+
+        Function_Return sResult
+    End_Function
+
+    { Visibility=Private }
+    Function ByteArrayToString UChar[] data Integer iCount Returns String
+        String sResult
+        Integer iIdx iLastIdx
+
+        Move (iCount - 1) to iLastIdx
+        For iIdx from 0 to iLastIdx
+            Move (Append(sResult, Character(data[iIdx]))) to sResult
+        Loop
+        Function_Return sResult
+    End_Function
+
+    { Visibility=Private }
+    Function ByteData String sData Integer ByRef iLength Returns UChar[]
+        Integer iIdx iRemainder
+        UChar[] result
+
+        Move (Length(sData)) to iLength
+        Move 0 to result[iLength + 16]
+        Move (Mod(iLength, 16)) to iRemainder
+        For iIdx from 1 to iLength
+            Move (Ascii(Mid(sData, 1, iIdx))) to result[iIdx - 1]
+        Loop
+        If (iRemainder > 0) Move 0 to result[iLength + 15 - iRemainder]
+        Function_Return result
+    End_Function
+
+    { Visibility=Private }
+    Function CryptIV Returns UChar[]
+        UChar[16] IV
+        Move (26) to IV[0]
+        Move (245) to IV[1]
+        Move (182) to IV[2]
+        Move (98) to IV[3]
+        Move (235) to IV[4]
+        Move (64) to IV[5]
+        Move (34) to IV[6]
+        Move (128) to IV[7]
+        Move (136) to IV[8]
+        Move (122) to IV[9]
+        Move (114) to IV[10]
+        Move (250) to IV[11]
+        Move (119) to IV[12]
+        Move (20) to IV[13]
+        Move (107) to IV[14]
+        Move (159) to IV[15]
+        Function_Return IV
+    End_Function  // CryptIV
+
+    { Visibility=Private }
+    Function CryptKey Returns UChar[]
+        UChar[32] key
+        Move (106) to key[0]
+        Move (16) to key[1]
+        Move (235) to key[2]
+        Move (26) to key[3]
+        Move (3) to key[4]
+        Move (208) to key[5]
+        Move (93) to key[6]
+        Move (247) to key[7]
+        Move (120) to key[8]
+        Move (239) to key[9]
+        Move (76) to key[10]
+        Move (73) to key[11]
+        Move (126) to key[12]
+        Move (17) to key[13]
+        Move (109) to key[14]
+        Move (99) to key[15]
+        Move (222) to key[16]
+        Move (149) to key[17]
+        Move (48) to key[18]
+        Move (197) to key[19]
+        Move (155) to key[20]
+        Move (5) to key[21]
+        Move (68) to key[22]
+        Move (119) to key[23]
+        Move (107) to key[24]
+        Move (18) to key[25]
+        Move (115) to key[26]
+        Move (186) to key[27]
+        Move (108) to key[28]
+        Move (185) to key[29]
+        Move (93) to key[30]
+        Move (122) to key[31]
+        Function_Return key
+    End_Function  // CryptKey
+End_Class  // cAesCrypt

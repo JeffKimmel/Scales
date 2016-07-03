@@ -1,0 +1,179 @@
+Use cWebCardContainer.pkg
+Register_Object oCard
+Register_Object oiFrame
+Register_Object oHJLabel
+Register_Object oRefresh
+Register_Object oRunReportButton
+Register_Object oTicket
+
+Class cHJWebCardContainer is a cWebCardContainer
+    
+//KC    09/12/2013   (OT13244, OT 13245) Added logic to calculate yesterday, trailing week, and trailing month and them as parameters for new DAI dashboards
+
+    Procedure Construct_Object
+        Property Integer piRow
+        Property Integer piCol
+        Forward Send Construct_Object
+        {WebProperty = true}
+        Property String psReportType
+        {WebProperty = true}
+        Property Integer piCol2Obj
+
+        //Set psReportType to "HeavyJob"
+    End_Procedure
+
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+        Set piColumnSpan to 10
+    End_Procedure
+
+    Function DateGetMonthInWords Date dDate Returns String
+        Integer iMonth
+        String sRetMonth
+        Move (DateGetMonth(dDate)) to iMonth
+        If (iMonth = 1) Begin
+            Move "January" to sRetMonth
+        End
+        Else If (iMonth = 2) Begin
+            Move "February" to sRetMonth
+        End
+        Else If (iMonth = 3) Begin
+            Move "March" to sRetMonth
+        End
+        Else If (iMonth = 4) Begin
+            Move "April" to sRetMonth
+        End
+        Else If (iMonth = 5) Begin
+            Move "May" to sRetMonth
+        End
+        Else If (iMonth =6 ) Begin
+            Move "June" to sRetMonth
+        End
+        Else If (iMonth = 7) Begin
+            Move "July" to sRetMonth
+        End
+        Else If (iMonth = 8) Begin
+            Move "August" to sRetMonth
+        End
+        Else If (iMonth = 9) Begin
+            Move "September" to sRetMonth
+        End
+        Else If (iMonth = 10 ) Begin
+            Move "October" to sRetMonth
+        End
+        Else If (iMonth = 11) Begin
+            Move "November" to sRetMonth
+        End
+        Else If (iMonth = 12) Begin
+            Move "December" to sRetMonth
+        End
+        Function_Return sRetMonth
+    End_Function
+
+
+    Procedure ShowReport Boolean shouldShow
+        Boolean appleClient
+        Integer iRow iCol iStart iEnd iCol2Obj iMonth iObj  iOffset  
+        String sValue sReport sTitle sURL sReportType sUSERGUID sCOMP_GUID sBU_GUID
+        String   sFromDateForm sReportRange sFromYearMonth sToYearMonth
+        Date dDate dToday dTrailWeek dTrailMonth dYesterday
+        tReportStruct thisReport
+        Date dFromDate dToDate
+//        WebGet pbAppleLand of oWebApp to appleClient
+        Move False to appleClient
+
+        Get psCompanyGUID of oSessionManager to sCOMP_GUID
+        Get psBusinessUnitGUID of oSessionManager to sBU_GUID
+        
+        Get piRow to iRow
+        Get piCol to iCol
+//        If (iCol = 2) Begin
+//            Get DashboardData of oDashboarddd sUSERGUID iRow 1 to thisReport
+//            If (thisReport.spanRow > 0) Begin
+//                Move False to shouldShow
+//            End
+//        End
+        
+        
+        WebSet pbRender to shouldShow
+        If (shouldShow = False) Begin
+            Procedure_Return
+        End
+        Get piDateObject of oTicket to iObj
+        WebGet psValue of iObj to dFromDate
+//        WebGet pdFromDateForm of oWebApp to sFromDateForm
+        
+//
+        WebGet psReportType to sReportType
+        Get psUserGUID of ghoWebSessionManager to sUSERGUID
+        Get DashboardData of oDashboarddd sUSERGUID iRow iCol to thisReport
+
+        Move thisReport.reportLink to sValue
+        Move " - " to sReportRange
+        If (trim(thisReport.reportDuration) = "Day") Begin
+            Append sReportRange (Cast(dFromDate,String))
+            Move (dFromDate + 1) to  dToDate    
+        End
+        If (trim(thisReport.reportDuration) = "Week") Begin
+            Move (DateGetDay(dfromDate )) to iStart
+            Move (DateGetDayOfWeek(dfromDate )) to iOffset
+            Move (dfromDate - iOffset + 2) to dFromDate
+            Move (dFromDate + 7) to dToDate
+            Append sReportRange "Week of " (Cast(dFromDate,String))
+        End
+        Else If (trim(thisReport.reportDuration) = "Month") Begin
+            Move (DateGetDay(dfromDate)) to iOffset
+            Move (dfromDate - iOffset +1) to dfromDate
+            Move (DateGetMonth(dFromDate)) to iOffset
+            If (iOffset < 12) Begin
+                Move (DateSetMonth(dfromDate,(DateGetMonth(dfromDate)) + 1)) to dToDate
+            End
+            Else Begin
+                Move (DateSetMonth(dfromDate,1)) to dToDate      
+                Move (DateSetYear(dToDate,(DateGetYear(dToDate)) + 1)) to dToDate       
+            End
+            
+            
+            Get DateGetMonthInWords dFromDate to sTitle
+            Append sReportRange  sTitle
+        End
+
+        Move (Trim(thisReport.reportName)) to sTitle
+        Append sTitle sReportRange
+        Move (Trim(Uppercase(thisReport.reportLink))) to sURL
+        Move (Replace("DAISTARTDATE",sURL,(cast(dFromDate,String)))) to sURL
+        Move (Replace("DAIENDDATE",sURL,(cast(dToDate,String)))) to sURL
+        Move (Replace("BU_GUID",sURL,sBU_GUID)) to sURL
+        Move (Replace("COMP_GUID",sURL,sCOMP_GUID)) to sURL
+
+//        Move (Replace("DAI_START_YEARMONTH",sURL,sFromYearMonth)) to sURL  //JMK 9/12/2013
+//        Move (Replace("DAI_END_YEARMONTH",sURL,sToYearMonth)) to sURL      //JMK 9/12/2013
+
+        If ( ((sTitle contains "List") or (sTitle contains "Grid")) and (appleClient)) Begin
+            WebSet pbRender of (oiFrame(oCard(Self))) to False
+            WebSet pbRender of (oRefresh(oCard(Self))) to False
+            WebSet pbRender of (oRunReportButton(oCard(Self))) to True
+        End
+        Else Begin
+            WebSet pbRender of (oiFrame(oCard(Self))) to True
+            WebSet pbRender of (oRefresh(oCard(Self))) to True            
+            WebSet pbRender of (oRunReportButton(oCard(Self))) to False
+        End
+        
+        WebSet psURL of (oiFrame(oCard(Self))) to sURL
+        WebSet psCaption of (oHJLabel(oCard(Self))) to sTitle
+
+        WebGet piCol2Obj to iCol2Obj
+        If (iCol2Obj le 0) Procedure_Return
+
+        If (thisReport.spanRow > 0) Begin
+            WebSet psCSSClass of iCol2Obj to "HideMe"
+            WebSet piColumnSpan to 20
+        End
+        Else Begin
+            WebSet piColumnSpan to 10
+            WebSet psCSSClass of iCol2Obj  to ""
+        End
+    End_Procedure
+
+End_Class

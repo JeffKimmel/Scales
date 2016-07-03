@@ -1,0 +1,176 @@
+Use cWebModalDialog.pkg
+Use cWebForm.pkg
+Use cWebButton.pkg
+Use cWebPanel.pkg
+Use cWebLabel.pkg
+Use cWebCookie.pkg
+
+Register_Object oHomeMenuItem
+Register_Object oNavLeft
+Register_Object oHeaderBottom
+Register_Object oHeaderAll
+
+Object oLogin is a cWebView  //
+    Set psCaption to "Please enter your username and password to login."
+    //Set pbShowClose to (peLoginMode(oWebApp) <> lmLoginRequired)
+    Set pbServerOnShow to True
+    Delegate Set phoDefaultView to oLogin
+    Delegate Set phoLoginView to Self
+    
+    Object oCookie is a cWebCookie
+    End_Object
+    
+    Object oTopPanel is a cWebPanel
+        Set peRegion to prTop
+        Set piHeight to 10          
+    End_Object
+    
+    Object oMainPanel is a cWebPanel
+        Set peRegion to prCenter
+        Set psCSSClass to "noOverFlow"
+        Set piColumnCount to 20
+        
+        Object oLoginName is a cWebForm
+            Set psLabel to "Login Name:"
+            Set peLabelPosition to C_WebDefault
+            Set peLabelAlign to alignRight
+            //Set piMaxLength to 20
+            Set piColumnSpan to 8
+            Set piColumnIndex to 5
+        End_Object
+        
+        Object oPassword is a cWebForm
+            Set psLabel to "Password:"
+            Set pbPassword to True
+            Set peLabelAlign to alignRight
+            //Set piMaxLength to 20
+            Set piColumnSpan to 8
+            Set piColumnIndex to 5
+        End_Object   
+
+        Object oRememberMe is a cWebCheckbox
+            Set psCaption to "Remember Me"            
+            Set pbShowLabel to True
+            Set piColumnIndex to 5
+            Set piColumnSpan to 5
+        End_Object
+        
+        Object oWarning is a cWebLabel
+            Set pbVisible to False
+            Set psCaption to "Invalid login name or password."
+            Set psCSSClass to "Warning"            
+            Set peAlign to alignCenter
+            Set piColumnSpan to 10
+            Set piColumnIndex to 5
+        End_Object
+        
+        Object oSpace is a cWebSpacer
+            Set piColumnSpan to 20
+            Set pbFillHeight to True
+        End_Object
+        
+        Object oWebFrame is a cWebIFrame
+            Set pbVisible to False            
+        End_Object
+        
+        Object oLoginButton is a cWebButton
+            Set pbShowLabel to False
+            Set psCaption to "Login"
+            Set pbServerOnClick to True
+            Set piColumnIndex to 8
+            Set piColumnSpan to 4
+                        
+            Procedure OnClick
+                Send DoLogin
+            End_Procedure            
+        End_Object                
+    End_Object
+
+    Set pbServerOnSubmit to True
+    Procedure OnSubmit
+         Send DoLogin
+    End_Procedure
+    
+    Procedure DoLogin
+        String sLoginName sPassword sCompany
+        String DAIUser DAIPassword sURL
+        Boolean bResult bRememberMe
+        Integer iTest
+        Handle hoDefaultView
+        
+        //WebGet psValue of oLoginName to sLoginName
+        //WebGet psValue of oPassword to sPassword
+        
+        WebGet psValue of oRememberMe to bRememberMe
+        WebGet psValue of oLoginName to sLoginName
+        WebGet psValue of oPassword to sPassword
+        //WebGet psValue of oCompany to sCompany        
+        
+        If ( (sLoginName = "") and (sPassword = "")) Begin
+            Move "jeff.kimmel@hcss.com" to sLoginName
+            Move "qwerty" to sPassword
+        End
+        
+        Get UserLogin of ghoWebSessionManager sLoginName sPassword to bResult
+        
+        If (bResult) Begin
+            If (bRememberMe) Begin
+                Send SetCookie of oCookie "ScaleUserName" sLoginName
+                //Send SetCookie of oCookie "CompanyName" sCompany
+            End
+
+            WebGet piLoginDAIUser of oWebApp to iTest
+            If (iTest <> 0) Begin
+                Send refreshURL to iTest
+            End
+            Send Hide of oLogin
+            //Send Show of oDashboard
+            WebSet psValue of oLoginName to ""
+            WebSet psValue of oPassword  to ""
+            WebSet pbVisible of oWarning to False
+            WebSet pbRender of oNavLeft to True
+            WebSet piHeight of oHeaderAll to 136
+            WebSet pbRender of (oHeaderBottom(oHeaderAll)) to True
+                
+                
+            Send OnClick to (oHomeMenuItem(oNavLeft(Self))) "InitLoad" "InitLoad"
+        End
+        Else Begin
+            WebSet pbVisible of oWarning to True
+        End
+    End_Procedure
+    
+    
+    Set pbServerOnSubmit to True
+    Procedure OnSubmit
+         Send DoLogin
+    End_Procedure
+    
+    Procedure OnShow
+        //WebSet psURL of oWebFrame to "http://50.57.171.86/Dashboard/default.asp?FRW=99"
+
+        String sURL sLoginName sCompany
+        Move (CS_DynamicServer + "ai6/ai.asp?UID=Dashboard&PW=dashboard&DAI_R=1180") to sURL
+         
+         //"http://apps.rfidentity.com/ai6/ai.asp?DAI_R=1182&FPARM1_=DAIStartDate&FPARM2_=DAIEndDate&FPARM8_=BU_GUID"      
+        WebSet psURL of oWebFrame to sURL
+        
+        Get GetCookie of oCookie "ScaleUserName" to sLoginName
+        //Get GetCookie of oCookie "CompanyName" to sCompany
+        If (sCompany ne "") Begin
+            Move (Replaces("%20",sCompany, " ")) to sCompany
+            Move (Replaces("%2C",sCompany, ",")) to sCompany
+            //WebSet psValue of oCompany to sCompany
+        End
+        If (sLoginName ne "") Begin
+            WebSet psValue of oLoginName to sLoginName
+            Send Focus of oPassword                        
+        End
+        Else Begin
+           Send Focus of oLoginName 
+        End
+        
+
+    End_Procedure
+    
+End_Object

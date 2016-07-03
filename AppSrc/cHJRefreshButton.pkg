@@ -1,0 +1,66 @@
+Use cWebButton.pkg
+
+Register_Object oiFrame
+
+Class cHJRefreshButton is a cWebButton
+    
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        Set piColumnSpan to 0
+        Set psCaption to "Refresh"
+        Set psCSSClass to "linkLabel"
+        Set piColumnIndex to 4
+    End_Procedure
+
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+    End_Procedure
+                    
+    Procedure OnClick
+        Send RefreshMe of oiFrame
+    End_Procedure
+End_Class
+
+Class cRunReportButton is a cWebButton
+    
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        Set piColumnSpan to 3
+        Set psCaption to "Grids and lists are incompatible with your device in this view.  Please tap to view the report in a new tab."
+        Set pbRender to False 
+        Set psCSSClass to "runReportLinkLabel"
+        Set piColumnIndex to 1
+    End_Procedure
+
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+    End_Procedure
+                    
+    Procedure OnClick
+        String thisURL sReportURL sNewURL
+        Integer iVoid iPos        
+        
+        WebGet psURL of oiFrame to sReportURL
+        
+        //Do this to obfuscate the report..        
+        Get ServerVariable of ghoWebServiceDispatcher "HTTP_REFERER" to thisUrl
+        
+        //Unescape using windows API
+        Move (ToANSI(thisUrl)) to thisUrl
+        Move (UrlUnescape(AddressOf(thisUrl), 0, 0, URL_UNESCAPE_INPLACE)) to iVoid
+        Move (Lowercase(ToOEM(thisUrl))) to thisUrl
+        Move (Replace("http://",thisURL,"")) to thisURL
+        
+        Move "http://" to sNewURL
+        
+        Move (Pos("/",thisURL,0)) to iPos
+        Append sNewURL (Left(thisURL, iPos))
+        Move (Right(thisURL,(Length(thisURL) - iPos))) to thisURL
+        
+        Move (Pos("/",thisURL,0)) to iPos
+        Append sNewURL (Left(thisURL, iPos)) "Listing.html#" sReportURL
+        
+        Send NavigateToPage sNewURL btNewTab    
+    End_Procedure
+                    
+End_Class

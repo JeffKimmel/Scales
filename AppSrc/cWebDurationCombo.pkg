@@ -1,0 +1,42 @@
+Use cWebCombo.pkg
+
+Class cWebDurationCombo is a cWebCombo
+    
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        Set piLabelOffset to 2
+        Set pbServerOnChange to True
+        {WebProperty = true}
+        Property Integer piReportCombo
+        
+        {WebProperty = true}
+        Property Integer piReportController
+        
+        {WebProperty = true}
+        Property Integer piColumn        
+    End_Procedure
+    
+
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+    End_Procedure
+    
+    Procedure OnFill
+        Forward Send OnFill
+        Send AddComboItem "Day" "Day"
+        Send AddComboItem "Week" "Week"
+        Send AddComboItem "Month" "Month"
+    End_Procedure
+    
+    Procedure OnChange
+        Integer iReportCombo iCol iReportController
+        String sVal
+        WebGet piReportCombo to iReportCombo
+        WebGet piReportController to iReportController
+        WebGet piColumn to iCol
+        WebGet psValue to sVal
+        WebSet psReportDuration of iReportCombo to sVal
+        //Send setReportDuration to iReportController iCol sVal
+    End_Procedure
+
+End_Class

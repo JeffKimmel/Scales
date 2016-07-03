@@ -1,0 +1,698 @@
+Use AllWebAppClasses.pkg
+Use cWebMenuItemLoadView.pkg
+Use cWebHtmlMenuItem.pkg
+Use cWSCredentialsBasic.pkg
+
+Use mertech.inc
+String CS_DynamicServer
+Move "http://127.0.0.1/" to CS_DynamicServer
+//Move "http://23.253.204.8/" to CS_DynamicServer
+//Move "http://apps.rfidentity.com/" to CS_DynamicServer
+
+//Login "50.57.6.220" "Scales" "GS14abm2:53" "SQL_DRV"
+//SET_DATABASE_NAME to "Credentials" 
+
+Integer CI_CURSCREENOBJ
+Integer CI_TOGGLEOBJ
+Struct tsAllLoginInfor
+   tWSLoginResult loginResult
+    tWSDynamicAICredentialResult DAIResult
+End_Struct
+
+Struct Creduser
+    String CompGUID
+    String buGUID    
+    String userGUID
+    String loginName
+    String password
+    String firstName
+    String lastName
+    String appID
+    String uelaVersion
+    String passCode
+    Boolean isDeleted
+End_Struct
+
+Struct tReportStruct
+    String reportName
+    String reportLink
+    String reportDuration
+    Integer spanRow
+End_Struct
+
+Object oApplication is a cApplication
+    Object oCred is a cWSCredentialsSecure
+    End_Object
+
+    Function credLogin String userName String passWord Returns tsAllLoginInfor
+        tsAllLoginInfor myRes
+        Get wsLoginUser of oCred userName passWord "" to myRes.loginResult
+        If (myRes.loginResult.KeyWord = "Success") Begin
+           Get wsGetDynamicAICredentials of oCred myRes.loginResult.UsrInfo.CompanyId  myRes.loginResult.UsrInfo.UserId myRes.loginResult.UsrInfo.PassCode to myRes.DAIResult
+            If ((userName contains "hcss.com") and (myRes.DAIResult.Password = "")) Begin
+                Move "AllenCompany02" to myRes.DAIResult.UserName
+                Move "qwerty" to myRes.DAIResult.Password
+                //Move "administrator" to myRes.DAIResult.UserName
+                //Move "jmk" to myRes.DAIResult.Password
+            End
+        End    
+        Function_Return myRes
+    End_Function
+    
+    Function userList Returns tWSCompanyUserListResult
+        tWSCompanyUserListResult myList
+        String sCompanyGUID sPassCode sUserGUID
+        Get psCompanyGUID of ghoWebSessionManager to sCompanyGUID
+        Get psUserGUID of ghoWebSessionManager to sUserGUID
+        Get psUserPassCode of ghoWebSessionManager to sPassCode
+        Get wsGetCompanyUsers of oCred (trim(sCompanyGUID)) (trim(sUserGUID)) (trim(sPassCode)) to myList
+        Function_Return myList
+    End_Function
+    
+    Function updateUserInCredential Creduser userToUpdate Returns tWSResults
+        String sLoginUserGUID sLoginUserPassCode
+        tWSResults updateRes
+        
+        Get psUserGUID of ghoWebSessionManager to sLoginUSerGUID
+        Get psUserPassCode of ghoWebSessionManager to sLoginUserPassCode
+        Get wsUpdateUser of oCred userToUpdate.userGUID userToUpdate.firstName userToUpdate.lastName userToUpdate.loginName userToUpdate.password userToUpdate.CompGUID userToUpdate.buGUID userToUpdate.appID userToUpdate.passCode "" userToUpdate.isDeleted sLoginUserGUID sLoginUserPassCode to updateRes
+        Function_Return updateRes
+//String llLName 
+//String llEmail 
+//String llPassword 
+//String llCompanyId 
+//String llBusinessUnitId 
+//String llApplicationId 
+//String llPassCode 
+//String llEulaVersion 
+//Boolean llIsDeleted 
+//String llUser String 
+//llUserPassCode Returns 
+//tWSResults
+        
+    End_Function
+
+    Function createUserInCredential Creduser userToCreate Returns tWSResults
+        String sLoginGUID sLoginPassCode
+        tWSResults Result
+        Get psUserGUID of ghoWebSessionManager to sLoginGUID
+        Get psUserPassCode of ghoWebSessionManager to sLoginPassCode
+        Get wsCreateUser of oCred userToCreate.firstName userToCreate.lastName userToCreate.loginName userToCreate.password userToCreate.CompGUID userToCreate.buGUID userToCreate.appID "2345" "" sLoginGUID sLoginPassCode to Result
+        Function_Return Result
+    End_Function
+
+End_Object
+
+Object oWebApp is a cWebApp
+    Property tReportStruct[] ptReportList
+    
+    {WebProperty = True}
+    Property Boolean pbAppleLand False
+    Set psTheme to "HCSS"
+    Set peLoginMode to lmLoginNone
+    Set psEncryptPassword to "JMK"
+    Set peApplicationStyle to wvsDesktop    
+
+    {WebProperty = True}
+    Property Integer piLoginDAIUser
+
+    Property Integer piCompanyNameObject
+   
+
+
+    Use MessageDialog.wo
+    Use HCSSDatePicker.wo
+     
+    Use SessionManager.wo
+//    Use LoginDialog.wo
+    Use WebResourceManager.wo
+    Use Login.wo
+    Use Dashboard.wo
+    Use SettingsUser.wo
+    Use Schedule.wo
+    Use PlantSales.wo
+    Use MaterialReceived.wo
+    Use MaterialDelivered.wo
+    Use GPSListing.wo
+    Use MessageDialog.wo
+    Use SettingsPlants.wo
+    Use SettingsTrucks.wo
+    Use SettingsDrivers.wo
+    Use Connections.wo
+    Use HCSSDatePicker.wo
+    Use GPS.wo
+    Use cUserDashDataDictionary.dd
+    Use SettingsMaterial.wo
+    Use SettingsLocation.wo
+    Use SettingsRFIDStations.wo
+    Use LocationLookup.wo
+    Use MaterialLookup.wo
+    Use NewMaterialLookup.wo
+    Use PlantLookup.wo
+    Use TruckLookup.wo
+    Use EmployeeLookup.wo
+    
+    Object oDashboardDD is a cUserDashDataDictionary
+    End_Object
+    
+
+    Object oHeaderAll is a cWebPanel
+        //Set piWidth to 1000
+        Set peRegion to prTop
+        //Set piHeight to 108
+        //Set piHeight to 136
+        Set piHeight to 100
+        
+        //Object oCookie is a cWebCookie            
+        //End_Object
+        
+        //Set pbRender to False
+        
+        Object oHeaderTop is a cWebPanel
+            //Set piWidth to 1000
+            Set peRegion to prTop
+            Set piColumnCount to 100
+            Set piHeight to 88
+            Set psCSSClass to "TitanHeader"
+
+            Object ologo is a cWebImage
+                Set piHeight to 70
+                Set piColumnIndex to 0
+                Set piColumnSpan to 23
+                Set psUrl to "Images/rfidlogo.jpg"
+    
+                //Set psUrl to "Images/RF_Logo.jpg"
+                
+                //Procedure OnClick
+                    //Send NavigateToPage "http://www.northamerica.certifiedlabs.com" btNewTab
+                //End_Procedure
+            End_Object
+            
+            Object oCompanyName is a cWebLabel
+                Set piColumnIndex to 24
+                Set piColumnSpan to 46
+                Set psCaption to ""
+                Set psCSSClass to "companyHeader"
+                Set piCompanyNameObject of oWebApp to (Self)
+            End_Object
+
+
+            Object oWelcomeLabel is a cWebHtmlBox
+//                Set psCaption to " |  | Last Login: "
+                //Set psCaption to ""
+                Set psHtml to ""
+                Set piColumnIndex to 70
+                Set piColumnSpan to 30
+                Set psCSSClass to "emptyRight"
+                Set pbServerOnClick to True
+                 
+                Procedure OnClick String sId String sParam     //RJ_ 06/25/13
+                    If (sId = "logout") Begin
+                        Send Show of oLogin
+                        WebSet pbRender of oNavLeft to False
+                        //WebSet pbRender of oHeaderAll to False
+                        WebSet pbRender of (oHeaderBottom(oHeaderAll)) to False
+                        WebSet piHeight of oHeaderAll to 100
+                        WebSet psCaption of (oCompanyName(oHeaderTop(oHeaderAll(Self)))) to ""
+
+                        Procedure_Return
+                    End
+                    Handle hoCrypt hoAuthSvc
+                    String sLoginName sLoginToken sUrl
+                    Boolean bValid
+                    Move sId to sUrl
+                    If (sLoginToken <> "") Move (Append(sId, "?sid=" + sLoginToken)) to sUrl
+                    Send NavigateToPage sUrl btNewTab
+                End_Procedure
+
+                
+            End_Object
+        End_Object //oHeaderTop
+    
+        Object oHeaderBottom is a cWebPanel
+                //Set piWidth to 1000
+                Set peRegion to prBottom
+                Set piColumnCount to 100
+                Set piHeight to 36
+                Set psCSSClass to ""
+                Set pbRender to False
+                
+                Object oHdrNavLeft is a cWebPanel
+                   Set piColumnCount to 5
+                    Set peRegion to prLeft
+                    Set piWidth to 202
+                    Set psBackgroundColor to "#e6e6e6"
+                    Set psCSSClass to "navLeftTop"
+                    Procedure ResizeMe Integer iSize
+                        WebSet piWidth to iSize
+                        If (iSize < 50) Begin
+                            WebSet pbRender of oHdrNavMiddle to False                         
+                        End
+                        Else Begin
+                           WebSet pbRender of oHdrNavMiddle to True 
+                        End
+                    End_Procedure
+                                    
+                    Object oHdrNavMiddle is a cWebPanel
+                        Set piColumnCount to 5
+                        Set peRegion to prLeft
+                        Set piWidth to 197
+                        Set psBackgroundColor to "#f0f0f0"
+                        Set psCSSClass to "navLeftTop"
+                        Set piHeight to 36
+                    End_Object
+
+                End_Object
+
+            Object oHeaderBottomCenter is a cWebPanel
+                //Set piWidth to 1000
+                //Set peRegion to prBottom
+                Set piColumnCount to 10
+                Set psCSSClass to "hdrBottom"
+                Set psBackgroundColor to "#f0f0f0"      
+                Set piHeight to 35
+//                Object oMidBox is a cWebHtmlBox
+//                    Set piColumnIndex to 0
+//                    Set piColumnSpan to 3
+//                    Set psCSSClass to "emptyMid"
+//                    Set psBackgroundColor to "#f9f9f9" 
+//                End_Object
+
+                Object oCurrentScreen is a cWebHtmlBox  //cWebHtmlMenuItem
+                    //Set psLIActiveClass to "active"
+                    Set piHeight to 38
+                    Set piColumnSpan to 5
+                    Set psCSSClass to "curScreenHTML"
+                    //Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='icon-gears'></span><span class='menu-text'>Setup                      >                     Users</span></a>"
+                    Set psHtml to "<span class='icon-home'></span><span class='menu-text'>&nbsp;Home</span>"
+                    
+                    Procedure OnClick String sId String sParam                
+                    End_Procedure
+                    
+                    Procedure setCurrentScreen String sClass String sFirst String sSecond
+                        String sNewLine
+                        Move ("<span class='" + sClass + "'></span><span class='menu-text'>&nbsp;" + sFirst) to sNewLine
+                        If (sSecond <> "") Begin
+                            Append sNewLine "&nbsp;&nbsp;>&nbsp;&nbsp;" sSecond
+                        End
+                        Append sNewLine "</span>"
+                        //Set psAnchorLine to sNewLine
+                        //Send setHTML False True
+                        WebSet psHtml to sNewLine
+                    End_Procedure
+                    
+                    Procedure End_Construct_Object
+                        Forward Send End_Construct_Object
+                        Move (Self) to CI_CURSCREENOBJ
+                        Set psHtml to "<span class='icon-home'></span><span class='menu-text'>&nbsp;Home</span>"
+                    End_Procedure
+                End_Object
+            
+                    Object oMenuBox is a cWebHtmlBox
+                        Set piColumnIndex to 6
+                        Set piColumnSpan to 4
+                        Set psCSSClass to "curScreenHTML emptyRight"
+                        Set pbServerOnClick to True
+                        //Set psHtml to '<a href="http://www.rfidentity.com" target="_blank" Class="linkLabel">rfidentity.com</a> <p8>|</p8> <a Class="linkLabel" data-ServerOnClick="logout" data-OnClickParam="logout">Logout</a>'
+                        Set psHtml to '<a Class="linkLabel" data-ServerOnClick="turnTimerOn" data-OnClickParam="turnTimerOn">Turn Auto Refresh On</a>'
+         
+                        Procedure OnClick String sId String sParam     //RJ_ 06/25/13
+                            If (sId = "turnTimerOff") Begin
+                                WebSet psHtml to '<a Class="linkLabel" data-ServerOnClick="turnTimerOn" data-OnClickParam="turnTimerOn">Turn Auto Refresh On</a>'
+                                Send TurnTimerOff of (oWebTimer(oWebMainPanel(oTicket(Self))))
+                            End
+                            Else Begin
+                                Send TurnTimerOn of (oWebTimer(oWebMainPanel(oTicket(Self))))
+                                WebSet psHtml to '<a Class="linkLabel" data-ServerOnClick="turnTimerOff" data-OnClickParam="turnTimerOff">Turn Auto Refresh Off</a>'
+                            End
+                        End_Procedure
+                        
+                        Procedure End_Construct_Object
+                            Forward Send End_Construct_Object
+                            Move (Self) to CI_TOGGLEOBJ
+                          End_Procedure
+                    End_Object
+                End_Object  //oHeaderBottomCenter
+            End_Object //oHeaderBottom
+
+    End_Object //oHeaderAll
+    
+    
+    
+
+    Object oNavLeft is a cWebPanel
+        Set piColumnCount to 5
+        Set peRegion to prLeft
+        Set piWidth to 199
+        Set piHeight to 500
+        //Set psBackgroundColor to "#e5e5e5"
+        //Set psBackgroundColor to "#6a6a6a"
+        Set psCSSClass to "navLeft"
+        Property Integer [] allMenuItems
+        Property Integer [] headerItems
+        Set pbRender to False
+        
+        Procedure RegisterMenuItem Integer menuItem
+            Integer [] menuItems
+            Integer iCount
+            Get allMenuItems to menuItems
+            Move (SizeOfArray(menuItems)) to iCount
+            Move menuItem to menuItems[iCount]
+            Set allMenuItems to menuItems
+        End_Procedure
+
+        Procedure RegisterHeaderItem Integer menuItem
+            Integer [] Items
+            Integer iCount
+            Get headerItems to Items
+            Move (SizeOfArray(Items)) to iCount
+            Move menuItem to Items[iCount]
+            Set headerItems to Items
+        End_Procedure
+
+        Procedure shrinkHeaderItems Integer menuItem
+            Integer [] hdrItems
+            Integer iCount i
+            Get headerItems to hdrItems
+            Move (SizeOfArray(hdrItems)) to iCount
+            Decrement iCount
+            For i from 0 to iCount
+                If (menuItem <> hdrItems[i]) Begin
+                    Send Shrink to hdrItems[i]    
+                End                
+            Loop
+        End_Procedure
+        
+        Procedure resetAllHTML
+            Integer [] menuItems
+            Integer iCount i
+            Get allMenuItems to menuItems
+            Move (SizeOfArray(menuItems)) to iCount
+            Decrement iCount
+            For i from 0 to iCount
+                Send setHTML to menuItems[i]         False True    
+            Loop
+        End_Procedure
+        
+        Object oHomeMenuItem is a cWebHtmlMenuItem
+            //Set piViewToShow to (oDashboard(Self))
+            Set piViewToShow to (oTicket(Self))
+            Set psLIActiveClass to "active"
+            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='icon-home'></span><span class='menu-text'>Home</span></a>"
+            Set psCSSClass to "active"
+            Procedure OnClick String sId String sParam                
+                Forward Send OnClick sId sParam
+                Send setCurrentScreen of CI_CURSCREENOBJ "icon-home" "Home" ""
+                WebSet pbRender of CI_TOGGLEOBJ to True
+            End_Procedure
+        End_Object
+
+        Object oReportMenuItem is a cWebHtmlMenuItem
+            Set psLIActiveClass to "active menuhdropen"
+            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='icon-file-text-alt'></span><span class='menu-text'>Reports</span></a>"
+            Set psCSSClass to "active"
+            Set pbMenuHeader to True
+            Send RegisterHeaderItem Self            
+        End_Object
+
+        Object oPlantSalesMenuItem is a cWebHtmlMenuItem
+            Set piViewToShow to (oPlantSales(Self))
+            Set psLIActiveClass to "active"
+            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='menu-text menu-subheader'>Plant Reports</span></a>"
+            Set psCSSClass to "active"
+            Send RegisterChildMenuItem to oReportMenuItem Self
+            Procedure OnClick String sId String sParam                
+                Forward Send OnClick sId sParam
+                Send setCurrentScreen of CI_CURSCREENOBJ "icon-file-text-alt" "Report" "Plant Reports"
+                WebSet pbRender of CI_TOGGLEOBJ to False
+            End_Procedure
+            End_Object
+
+        Object oMaterialReceivedMenuItem is a cWebHtmlMenuItem
+            Set piViewToShow to (oMaterialReceived(Self))
+            Set psLIActiveClass to "active"
+            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='menu-text menu-subheader'>Material Reports</span></a>"
+            Set psCSSClass to "active"
+            Send RegisterChildMenuItem to oReportMenuItem Self
+            Procedure OnClick String sId String sParam                
+                Forward Send OnClick sId sParam
+                Send setCurrentScreen of CI_CURSCREENOBJ "icon-file-text-alt" "Report" "Material Reports"
+                WebSet pbRender of CI_TOGGLEOBJ to False
+            End_Procedure
+        End_Object
+
+        //Object oMaterialDeliveredMenuItem is a cWebHtmlMenuItem
+        //    Set piViewToShow to (oMaterialDelivered(Self))
+        //    Set psLIActiveClass to "active"
+        //    Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='menu-text menu-subheader'>Material Delivered</span></a>"
+        //    Set psCSSClass to "active"
+        //    Send RegisterChildMenuItem to oReportMenuItem Self
+        //    Procedure OnClick String sId String sParam                
+        //        Forward Send OnClick sId sParam
+        //        Send setCurrentScreen of CI_CURSCREENOBJ "icon-file-text-alt" "Report" "Material Delivered"
+        //    End_Procedure
+        //End_Object
+
+//        Object oGPSListingMenuItem is a cWebHtmlMenuItem
+//            Set piViewToShow to (oGPSListing(Self))
+//            Set psLIActiveClass to "active"
+//            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='menu-text menu-subheader'>GPS Reports</span></a>"
+//            Set psCSSClass to "active"
+//            Send RegisterChildMenuItem to oReportMenuItem Self
+//            Procedure OnClick String sId String sParam                
+//                Forward Send OnClick sId sParam
+//                Send setCurrentScreen of CI_CURSCREENOBJ "icon-file-text-alt" "Report" "GPS Reports"
+//            End_Procedure
+//        End_Object
+
+        Object oConnectionsMenuItem is a cWebHtmlMenuItem
+            Set piViewToShow to (oConnections(Self))
+            Set psLIActiveClass to "active"
+            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='icon-sitemap'></span><span class='menu-text'>Connections</span></a>"
+            Set psCSSClass to "active"
+            Procedure OnClick String sId String sParam                
+                Forward Send OnClick sId sParam
+                Send setCurrentScreen of CI_CURSCREENOBJ "icon-sitemap" "Connections" ""
+                WebSet pbRender of CI_TOGGLEOBJ to False
+            End_Procedure
+        End_Object
+
+
+        Object oScheduleMenuItem is a cWebHtmlMenuItem
+            Set piViewToShow to (oSchedule(Self))
+            Set psLIActiveClass to "active"
+            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='icon-calendar'></span><span class='menu-text'>Schedule</span></a>"
+            Set psCSSClass to "active"
+            Procedure OnClick String sId String sParam                
+                Forward Send OnClick sId sParam
+                Send setCurrentScreen of CI_CURSCREENOBJ "icon-calendar" "Schedule" ""
+                WebSet pbRender of CI_TOGGLEOBJ to False
+            End_Procedure
+
+        End_Object
+    
+        Object oSettingsMenuItem is a cWebHtmlMenuItem
+            Set psLIActiveClass to "active menuhdropen"
+            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='icon-gears'></span><span class='menu-text'>Setup</span></a>"
+            Set psCSSClass to "active"
+            Set pbMenuHeader to True
+            Send RegisterHeaderItem Self
+        End_Object
+
+
+//        Object oMyAccontMenuItem is a cWebHtmlMenuItem
+//            Set piViewToShow to (oSettingsUser(Self))
+//            Set psLIActiveClass to "active"
+//            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='menu-text menu-subheader'>My Account</span></a>"
+//            Set psCSSClass to "active"
+//            Send RegisterChildMenuItem to oSettingsMenuItem Self
+//            Procedure OnClick String sId String sParam                
+//                Forward Send OnClick sId sParam
+//                Send setCurrentScreen of CI_CURSCREENOBJ "icon-gears" "Settings" "My Account"
+//            End_Procedure
+//         End_Object
+
+//        Object oUserMenuItem is a cWebHtmlMenuItem
+//            Set piViewToShow to (oSettingsUser(Self))
+//            Set psLIActiveClass to "active"
+//            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='menu-text menu-subheader'>Users</span></a>"
+//            Set psCSSClass to "active"
+//            Send RegisterChildMenuItem to oSettingsMenuItem Self
+//            Procedure OnClick String sId String sParam                
+//                Forward Send OnClick sId sParam
+//                Send setCurrentScreen of CI_CURSCREENOBJ "icon-gears" "Settings" "User Setup"
+//            End_Procedure             
+//        End_Object
+
+//        Object oBusinessUnitsMenuItem is a cWebHtmlMenuItem
+//            Set piViewToShow to (oSettingsUser(Self))
+//            Set psLIActiveClass to "active"
+//            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='menu-text menu-subheader'>Business Units</span></a>"
+//            Set psCSSClass to "active"
+//            Send RegisterChildMenuItem to oSettingsMenuItem Self
+//            Procedure OnClick String sId String sParam                
+//                Forward Send OnClick sId sParam
+//                Send setCurrentScreen of CI_CURSCREENOBJ "icon-gears" "Settings" "Business Unit Setup"
+//            End_Procedure
+//         End_Object
+
+        Object oLocationMenuItem is a cWebHtmlMenuItem
+            Set piViewToShow to (oSettingsLocation(Self))
+            Set psLIActiveClass to "active"
+            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='menu-text menu-subheader'>Locations</span></a>"
+            Set psCSSClass to "active"
+            Send RegisterChildMenuItem to oSettingsMenuItem Self
+            Procedure OnClick String sId String sParam                
+                Forward Send OnClick sId sParam
+                Send setCurrentScreen of CI_CURSCREENOBJ "icon-gears" "Settings" "Location Setup"
+                WebSet pbRender of CI_TOGGLEOBJ to False
+            End_Procedure
+         End_Object
+
+        Object oPlantsMenuItem is a cWebHtmlMenuItem
+            Set piViewToShow to (oSettingsPlants(Self))
+            Set psLIActiveClass to "active"
+            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='menu-text menu-subheader'>Plants</span></a>"
+            Set psCSSClass to "active"
+            Send RegisterChildMenuItem to oSettingsMenuItem Self
+            Procedure OnClick String sId String sParam                
+                Forward Send OnClick sId sParam
+                Send setCurrentScreen of CI_CURSCREENOBJ "icon-gears" "Settings" "Plant Setup"
+                WebSet pbRender of CI_TOGGLEOBJ to False
+            End_Procedure
+         End_Object
+
+        Object oSettingsTruckMenuItem is a cWebHtmlMenuItem
+            Set piViewToShow to (oSettingsTrucks(Self))
+            Set psLIActiveClass to "active"
+            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='menu-text menu-subheader'>Trucks</span></a>"
+            Set psCSSClass to "active"
+            Send RegisterChildMenuItem to oSettingsMenuItem Self
+            Procedure OnClick String sId String sParam                
+                Forward Send OnClick sId sParam
+                Send setCurrentScreen of CI_CURSCREENOBJ "icon-gears" "Settings" "Truck Setup"
+                WebSet pbRender of CI_TOGGLEOBJ to False
+            End_Procedure
+         End_Object
+
+        Object oSettingsMaterialItem is a cWebHtmlMenuItem
+            Set piViewToShow to (oSettingsMaterial(Self))
+            Set psLIActiveClass to "active"
+            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='menu-text menu-subheader'>Materials</span></a>"
+            Set psCSSClass to "active"
+            Send RegisterChildMenuItem to oSettingsMenuItem Self
+            Procedure OnClick String sId String sParam                
+                Forward Send OnClick sId sParam
+                Send setCurrentScreen of CI_CURSCREENOBJ "icon-gears" "Settings" "Materials"
+                WebSet pbRender of CI_TOGGLEOBJ to False
+            End_Procedure
+         End_Object
+
+//        Object oSettingsDriverMenuItem is a cWebHtmlMenuItem
+//            Set piViewToShow to (oSettingsDrivers(Self))
+//            Set psLIActiveClass to "active"
+//            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='menu-text menu-subheader'>Drivers</span></a>"
+//            Set psCSSClass to "active"
+//            Send RegisterChildMenuItem to oSettingsMenuItem Self
+//            Procedure OnClick String sId String sParam                
+//                Forward Send OnClick sId sParam
+//                Send setCurrentScreen of CI_CURSCREENOBJ "icon-gears" "Settings" "Driver Setup"
+//                WebSet pbRender of CI_TOGGLEOBJ to False
+//            End_Procedure
+//         End_Object
+
+        Object oSettingsRFIDStationItem is a cWebHtmlMenuItem
+            Set piViewToShow to (oSettingsRFIDStations(Self))
+            Set psLIActiveClass to "active"
+            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='menu-text menu-subheader'>RFID Stations</span></a>"
+            Set psCSSClass to "active"
+            Send RegisterChildMenuItem to oSettingsMenuItem Self
+            Procedure OnClick String sId String sParam                
+                Forward Send OnClick sId sParam
+                Send setCurrentScreen of CI_CURSCREENOBJ "icon-gears" "Settings" "RFID Stations"
+                WebSet pbRender of CI_TOGGLEOBJ to False
+            End_Procedure
+         End_Object
+
+        Object oUserMenuItem is a cWebHtmlMenuItem
+            Set piViewToShow to (oSettingsUser(Self))
+            Set psLIActiveClass to "active"
+            Set psAnchorLine to "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='menu-text menu-subheader'>Employees</span></a>"
+            Set psCSSClass to "active"
+            Send RegisterChildMenuItem to oSettingsMenuItem Self
+            Procedure OnClick String sId String sParam                
+                Forward Send OnClick sId sParam
+                Send setCurrentScreen of CI_CURSCREENOBJ "icon-gears" "Settings" "Employee Setup"
+                WebSet pbRender of CI_TOGGLEOBJ to False
+            End_Procedure             
+        End_Object
+
+
+        Object oShrinkExpand is a cWebHtmlBox
+            Set psHtml to  "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='shrinkExpand icon-double-angle-left' style='padding-left:92px;padding-right:95px;'></span></a>"
+            Set psCSSClass to "active"
+            Set pbServerOnClick to True
+            Set piColumnSpan to 5
+            
+            Procedure OnClick String sId String sParam
+                Integer iWidth               
+                Boolean showButtons 
+                WebGet piWidth of oNavLeft to iWidth
+                If (iWidth = 199) Begin
+                    WebSet piWidth of oNavLeft to 25
+                    Send ResizeMe of (oHdrNavLeft(oHeaderBottom(oHeaderAll(Self)))) 25
+                    Move False to showButtons
+                    Send Shrink to oSettingsMenuItem
+                    Send Shrink of oReportMenuItem
+                    WebSet psHtml to  "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='icon-double-angle-right' style='padding-left:5px;padding-right:5px;'></span></a>"
+                End
+                Else Begin
+                   Move True to showButtons 
+                   WebSet piWidth of oNavLeft to 199 
+                   Send ResizeMe of (oHdrNavLeft(oHeaderBottom(oHeaderAll(Self)))) 202
+                   WebSet psHtml to  "    <a data-ServerOnClick='open' data-OnClickParam='Home'><span class='icon-double-angle-left' style='padding-left:92px;padding-right:92px;'></span></a>"
+                End
+                WebSet pbVisible of oHomeMenuItem to showButtons
+                WebSet pbVisible of oReportMenuItem to showButtons
+                WebSet pbVisible of oPlantSalesMenuItem to showButtons
+                WebSet pbVisible of oMaterialReceivedMenuItem to showButtons
+//                WebSet pbVisible of oMaterialDeliveredMenuItem to showButtons
+//                WebSet pbVisible of oGPSListingMenuItem to showButtons
+                WebSet pbVisible of oConnectionsMenuItem to showButtons
+                WebSet pbVisible of oScheduleMenuItem to showButtons
+                WebSet pbVisible of oSettingsMenuItem to showButtons
+//                WebSet pbVisible of oUserMenuItem to showButtons
+                WebSet pbVisible of oPlantsMenuItem to showButtons
+                WebSet pbVisible of oSettingsTruckMenuItem to showButtons
+//                WebSet pbVisible of oSettingsMaterialMenuItem to showButtons
+                //WebSet pbVisible of oSettingsDriverMenuItem to showButtons
+                
+                //Forward Send OnClick sId sParam
+                //Send setCurrentScreen of CI_CURSCREENOBJ "icon-gears" "Settings" "Driver Setup"
+            End_Procedure
+         End_Object
+
+    End_Object    
+    
+    Procedure SetWelcomeLine // String sWelcomeLine
+        Boolean bOk
+        String sWelcomeLine sUserName sCompanyName sLastLoggedIn
+        Get fGetWelcomeLineInfo of ghoWebSessionManager (&sUserName) (&sCompanyName) (&sLastLoggedIn) to bOk
+        If (bOk) Move ("Welcome " + sUserName) to sWelcomeLine
+        Else Move (" |  | Last Login: ") to sWelcomeLine
+         Append sWelcomeLine ' <p8>|</p8> <a href="http://www.rfidentity.com" target="_blank" Class="linkLabel">rfidentity.com</a> <p8>|</p8> <a Class="linkLabel" data-ServerOnClick="logout" data-OnClickParam="logout">Logout</a>'
+        //WebSet psCaption of (oWelcomeLabel(oHeaderTop(oHeaderAll(Self)))) to sWelcomeLine
+        WebSet psHtml of (oWelcomeLabel(oHeaderTop(oHeaderAll(Self)))) to sWelcomeLine
+        WebSet psCaption of (oCompanyName(oHeaderTop(oHeaderAll(Self)))) to sCompanyName
+        
+        
+        //WebSet psHtml to '<a href="http://www.rfidentity.com" target="_blank" Class="linkLabel">rfidentity.com</a> <p8>|</p8> <a Class="linkLabel" data-ServerOnClick="logout" data-OnClickParam="logout">Logout</a>'
+      
+           
+        
+    End_Procedure
+
+
+End_Object
+
+Send StartWebApp of oWebApp

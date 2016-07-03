@@ -1,0 +1,13 @@
+Use cWebForm.pkg
+Use cWebDateForm.pkg
+
+Class cRFWebForm is a cWebForm
+    Procedure SetDynamicEnabled 
+    End_Procedure
+End_Class
+
+Class cRFWebDateForm is a cWebDateForm
+    Procedure SetDynamicEnabled 
+    End_Procedure
+End_Class
+

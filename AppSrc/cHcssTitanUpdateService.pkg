@@ -1,0 +1,26 @@
+Use HCSSGlobalVarablesFunctions.pkg
+Use cTitanUpdateService.pkg
+Use cXmlConfiguration.cls
+
+Class cHcssTitanUpdateService is a cTitanUpdateService
+    Procedure Construct_Object
+        Handle hoConfig
+        Boolean bOk
+        String sUrlSvc
+
+        Forward Send Construct_Object
+
+        If (gbGpsIntegrationEnabled) Begin
+            Get Create (RefClass(cXmlConfiguration)) to hoConfig
+            Set psDocumentName of hoConfig to gsGpsConfigPath
+            Get LoadXMLDocument of hoConfig to bOk
+            If (bOk) Get AppSettingsValue of hoConfig "TitanUpdateServiceLocation" to sUrlSvc
+            Send Destroy of hoConfig
+        End
+        Set psServiceLocation to sUrlSvc
+    End_Procedure
+
+    Function CanSync Returns Boolean
+        Function_Return (psServiceLocation(Self) <> "")
+    End_Function
+End_Class

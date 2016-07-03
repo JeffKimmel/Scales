@@ -1,0 +1,44 @@
+Use HCSSGlobalVarablesFunctions.pkg
+Use cAuthenticationService.pkg
+Use cXmlConfiguration.cls
+Use cXmlResponse.pkg
+
+Class cHcssAuthenticationService is a cAuthenticationService
+    Procedure Construct_Object
+        Handle hoConfig
+        Boolean bOk
+        String sUrlSvc
+
+        Forward Send Construct_Object
+
+        If (gbGpsIntegrationEnabled) Begin
+            Get Create (RefClass(cXmlConfiguration)) to hoConfig
+            Set psDocumentName of hoConfig to gsGpsConfigPath
+            Get LoadXMLDocument of hoConfig to bOk
+            If (bOk) Get AppSettingsValue of hoConfig "AuthenticationServiceLocation" to sUrlSvc
+            Send Destroy of hoConfig
+        End
+        Set psServiceLocation to sUrlSvc
+    End_Procedure
+
+    Function CanAuthenticate Returns Boolean
+        Function_Return (psServiceLocation(Self) <> "")
+    End_Function
+
+    Function RequestToken String llEncryptedLoginName Returns String
+        Handle hoXml
+        String sXmlReturn sToken
+        Boolean bValid
+
+        Forward Get RequestToken llEncryptedLoginName to sXmlReturn
+
+        If (sXmlReturn <> "") Begin
+            Get Create (RefClass(cXmlResponse)) to hoXml
+            Get LoadXML of hoXml sXmlReturn to bValid
+            If (bValid) Get ReturnValue of hoXml to sToken
+            Send Destroy of hoXml
+        End
+
+        Function_Return sToken
+    End_Function
+End_Class

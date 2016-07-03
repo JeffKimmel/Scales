@@ -1,0 +1,72 @@
+Use cWebBaseControl.pkg
+
+Class cWebCookie is a cWebBaseControl
+    
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        
+        //  Define web properties
+        { WebProperty=True }
+        Property String psCookieString ''
+
+        { WebProperty=True }
+        Property String psClientOnGetCookie ''
+        { WebProperty=True }
+        Property Boolean pbServerOnGetCookie True
+        
+        //  Set client-side class
+        Set psJSClass to "WebCookie"
+        Set pbRender to False
+    End_Procedure
+    
+    Function GetCookieValue String sCookieString String sCookieName Returns String
+        String sValue
+        Move "" to sValue
+        If (Trim(sCookieName)<>"") Begin
+            Move (Trim(sCookieName)+"=") to sCookieName
+            If (Pos(sCookieName,sCookieString)>0) Begin
+                Move (Mid(sCookieString,Length(sCookieString),Pos(sCookieName,sCookieString))) to sCookieString
+                If (Pos(";",sCookieString)>0) Begin
+                    Move (Left(sCookieString,Pos(";",sCookieString)-1)) to sCookieString
+                End
+                Move (Replace(sCookieName,sCookieString,"")) to sValue
+            End
+        End
+        Function_Return sValue
+    End_Function
+    
+    Function GetCookie String sName Returns String
+        String sFullStr sValue
+        WebGet psCookieString to sFullStr
+        Get GetCookieValue sFullStr sName to sValue
+        Function_Return (Trim(sValue))
+    End_Function
+
+    Procedure GetCookieCallBack
+        Send ClientAction "getCookie"
+    End_Procedure
+
+    Procedure SetCookie String sCookieName String sCookieValue
+        String[] sParam
+        If (sCookieName<>"") Begin
+            Move sCookieName    to sParam[0]
+            Move sCookieValue   to sParam[1]
+            Move 0              to sParam[2]
+            Send ClientAction "setCookie" sParam
+        End
+    End_Procedure
+
+    { MethodType=Event }
+    Procedure OnGetCookie String sCookieString
+        //  Empty event stub
+    End_Procedure
+
+    { MethodType=Event }
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+        
+        //  Publish functions called from the client
+        WebPublishProcedure OnGetCookie
+    End_Procedure
+
+End_Class

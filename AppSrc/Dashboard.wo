@@ -1,0 +1,72 @@
+Use cWebView.pkg
+Use cWebPanel.pkg
+Use cWebButton.pkg
+Use cWebForm.pkg
+Use cWebLabel.pkg
+Use cWebHtmlBox.pkg
+
+Object oDashboard is a cWebView
+    Set pbServerOnShow to True
+    Set psCaption to "Multi Panel View"
+    
+    // Your DDO structure will go here
+
+    Object oWebTopPanel is a cWebPanel
+        Set peRegion to prTop
+        Set psBackgroundColor to "#DDDDDD"
+        
+        Object oButtonSample is a cWebButton
+            Set psCaption to "Dashboard"
+        End_Object
+
+    End_Object 
+
+    Object oWebMainPanel is a cWebPanel
+        Set piColumnCount to 6
+        
+        Object oWebFrame is a cWebIFrame
+            Set pbVisible to False
+            Set piColumnSpan to 6
+            Set piHeight to 3
+        End_Object        
+
+    End_Object 
+
+    Object oWebLeftPanel is a cWebPanel
+        Set peRegion to prLeft
+        Set psBackgroundColor to "#EEEEEE"
+        
+        Object oButtonSample is a cWebButton
+            Set psCaption to "Left"
+        End_Object
+
+    End_Object 
+
+    Object oWebRightPanel is a cWebPanel
+        Set peRegion to prRight
+        Set psBackgroundColor to "#EEEEEE"
+        
+        Object oButtonSample is a cWebButton
+            Set psCaption to "Right"
+        End_Object
+
+    End_Object 
+
+    Object oWebBottomPanel is a cWebPanel
+        Set peRegion to prBottom
+        Set psBackgroundColor to "#DDDDDD"
+        
+        Object oButtonSample is a cWebButton
+            Set psCaption to "Bottom"
+        End_Object
+        
+    End_Object 
+
+    Procedure OnShow
+        String DAIUser DAIPassword
+        Get psUserDAI_User of ghoWebSessionManager to DAIUser
+        Get psUserDAI_Password of ghoWebSessionManager to DAIPassword
+        //WebSet psURL of oWebFrame to ("http://50.57.171.86/dashboard/ai.asp?UID=" + DAIUser + "&PW=" + DAIPassword)
+    End_Procedure
+
+End_Object

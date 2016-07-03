@@ -1,0 +1,301 @@
+Use cWebView.pkg
+Use cWebPanel.pkg
+Use cWebButton.pkg
+Use cWebForm.pkg
+Use cWebLabel.pkg
+Use cWebHtmlBox.pkg
+Use cUserDataDictionary.dd
+Open Truck
+
+Register_Object oFirstName
+
+Object oSettingsUser is a cWebView    
+    // Your DDO structure will go here
+    Set pbServerOnShow to True
+    
+    Object oUserDD is a cUserDataDictionary
+        
+        Procedure OnConstrain
+            String sCompGUID
+            String sBUGUID
+            Integer iActive
+            Get psCompanyGUID of ghoWebSessionManager to sCompGUID
+            Get psBusinessUnitGUID of ghoWebSessionManager to sBUGUID
+            Constrain WebAppUser.CompanyGUID eq sCompGUID
+            Constrain WebAppUser.BUGUID eq sBUGUID
+            Constrain WebAppUser.IsActive eq 1
+        End_Procedure
+        
+        Function Request_Validate_And_Save Returns Boolean
+            String sPass sConfirm
+            Boolean bErr
+            WebGet psValue of oConfirmPass to sConfirm
+            WebGet psValue of oPass to sPass
+            If (sPass ne sConfirm) Begin
+                Send MessageDialog to oMessageDialog Self "User Setup" "Password and password confirmation do not match, please try again." MD_OK
+                Function_Return  True    
+            End
+            Forward Get Request_Validate_And_Save to bErr
+            Function_Return bErr
+            
+        End_Function
+    End_Object
+
+    Object oUserDDNoActiveCheck is a cWebAppUserDataDictionary
+        Procedure OnConstrain
+            String sCompGUID
+            String sBUGUID
+            Get psCompanyGUID of ghoWebSessionManager to sCompGUID
+            Get psBusinessUnitGUID of ghoWebSessionManager to sBUGUID
+            Constrain WebAppUser.CompanyGUID eq sCompGUID
+            Constrain WebAppUser.BUGUID eq sBUGUID
+        End_Procedure
+    End_Object
+
+
+    Set Server to oUserDD
+    Set Main_DD to oUserDD
+    
+    Object oWebMainPanel is a cWebPanel
+        Set piColumnCount to 4        
+        
+        Object oWebLeftPanel is a cWebPanel
+            Set peRegion to prLeft
+            Set pbResizable to True
+            Set piWidth to 200
+            Set piMinWidth to 200
+            Set psBackgroundColor to "#FFF"
+            
+            Object oUserList is a cWebList
+                Set piColumnSpan to 4
+                Set pbFillHeight to True
+                Set Ordering to 1
+                Object oColumn is a cWebColumn
+                    Set psCaption to "Current User"
+                    Entry_Item WebAppUser.LoginName
+                End_Object
+            End_Object
+            
+            Object oAddUserBtn is a cWebButton
+                    Set psCaption to "Add User"
+                    
+                    Procedure OnClick
+                        Send Request_Clear to oUserDD
+                        Send EnableEdit True
+                        Send Focus to oFirstName
+                    End_Procedure
+            End_Object
+        End_Object
+
+        Object oWebMainPanel is a cWebPanel
+            Set piColumnCount to 20
+            Object oHdrLine is a cWebLabel
+                    Set psCaption to "Setup Users"
+                    Set psCSSClass to "hdrLabel"
+                    Set piColumnSpan to 20
+            End_Object
+
+            Object oFirstName is a cWebForm
+                Set psLabel to "First:"
+                Set piColumnSpan to 10
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item WebAppUser.FirstName
+            End_Object
+            
+            Object oLastName is a cWebForm
+                Set psLabel to "Last:"
+                Set piColumnSpan to 10
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item WebAppUser.LastName
+            End_Object
+            
+            Object oEmail is a cWebForm
+                Set psLabel to "Login:"
+                Set piColumnSpan to 10
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item WebAppUser.LoginName
+            End_Object
+
+            Object oPass is a cWebForm
+                Set psLabel to "Password:"
+                Set piColumnSpan to 10
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Set pbPassword to True
+                Entry_Item WebAppUser.Password
+            End_Object
+
+            Object oConfirmPass is a cWebForm
+                Set psLabel to "Confirm:"
+                Set piColumnSpan to 10
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Set pbPassword to True
+                Set pbRender to False
+            End_Object
+            
+            Object oAppID is a cWebForm
+                Set psLabel to "HCSS Emp ID:"
+                Set piColumnSpan to 10
+                Set peLabelAlign to alignLeft
+                Set peLabelPosition to lpLeft
+                Entry_Item WebAppUser.AppID
+            End_Object
+            
+            Object oSpacer is a cWebSpacer
+                Set pbFillHeight to True
+                Set psCSSClass to "setupSpacer"
+            End_Object
+            
+            Object oEditSaveButton is a cWebButton
+                Set piColumnSpan to 4
+                Set psCaption to "Edit"
+                
+                Procedure OnClick
+                    Boolean bEnabled bErr
+                    WebGet pbEnabled of oAppID to bEnabled
+                    If (bEnabled) Begin
+                        Get Request_Validate_And_Save of oUserDD to bErr
+                        //Send Request_Save to oUserDD                        
+                        If (not(bErr)) Send EnableEdit (False)
+                    End
+                    Else Begin
+                        Send EnableEdit True
+                    End
+                End_Procedure
+            End_Object
+            
+            Object oCancelDeleteButton is a cWebButton
+                Set piColumnSpan to 2
+                Set piColumnIndex to 4
+                Set psCaption to "Delete"
+                Set psCSSClass to "deleteButton"
+
+                Procedure OnClick
+                    Boolean bEnabled
+                    String sLoginName
+                    Integer iResponse iErr
+                    WebGet pbEnabled of oAppID to bEnabled
+                    If (not(bEnabled)) Begin
+                        If (HasRecord(oUserDD)) Begin
+                            Get Field_Current_Value of oUserDD Field WebAppUser.LoginName to sLoginName
+                            Send MessageDialog of oMessageDialog Self ("Delete User") ("Delete" * sLoginName - "?") MD_YES_NO
+                        End
+                    End
+                    Send Refind_Records of oUserDD
+                    Send Request_Assign of oUserDD
+                    Send EnableEdit (False)
+                    
+                    If (not(HasRecord(oUserDD))) Begin
+                        Send MoveToFirstRow to oUserList    
+                    End
+                    Send Focus to oUserList
+                End_Procedure
+                
+                Procedure OnCloseModalDialog Handle hoModalDialog
+                    Boolean bEnabled
+                    String sLoginName
+                    Integer iResponse iErr
+                    WebGet MD_RESULT of oMessageDialog to iResponse
+                    If (iResponse ne MDR_YES) Begin
+                        Procedure_Return
+                    End
+                    WebGet pbEnabled of oAppID to bEnabled
+                    If ( (not(bEnabled)) and (HasRecord(oUserDD))) Begin
+                        //Get Field_Current_Value of oWebAppUser_DD Field WebAppUser.LoginName to sLoginName
+                        Get Validate_Delete of oUserDD to iErr
+                        If (not(iErr)) Begin
+                            Send Request_Delete of oUserDD
+                            Send MoveToFirstRow to oUserList    
+                        End
+                            Else Procedure_Return
+                    End
+                    //Send Refind_Records of oWebAppUser_DD
+                    //Send Request_Assign of oWebAppUser_DD
+                    Send EnableEdit False
+                End_Procedure
+            End_Object
+            
+        End_Object
+    End_Object 
+    
+    Procedure EnableEdit Boolean bEnabled
+        String sVal
+        WebSet pbEnabled of oFirstName to bEnabled
+        WebSet pbEnabled of oLastName to bEnabled
+        WebSet pbEnabled of oEmail to bEnabled
+        WebSet pbEnabled of oPass to bEnabled
+        WebSet pbEnabled of oAppID to bEnabled
+        WebSet pbRender  of oConfirmPass to bEnabled
+        WebGet psValue of oPass to sVal
+        WebSet psValue   of oConfirmPass to sVal
+        If (bEnabled) Begin
+            WebSet psCaption of oCancelDeleteButton to "Cancel"
+            WebSet psCaption of oEditSaveButton     to "Save"
+        End
+        Else Begin
+            WebSet psCaption of oCancelDeleteButton to "Delete"
+            WebSet psCaption of oEditSaveButton     to "Edit"                    
+        End
+    End_Procedure
+    
+    Procedure rebuildUserList tWSCompanyUserListResult userList
+        String sCompanyGUID sBUGUID
+        Boolean bDone
+        Integer i iCount
+        Get psCompanyGUID of ghoWebSessionManager to sCompanyGUID
+        Get psBusinessUnitGUID of ghoWebSessionManager to sBUGUID
+        Move False to bDone
+        
+        Clear WebAppUser
+        Move sCompanyGUID to WebAppUser.CompanyGUID 
+        Repeat            
+            Find gt WebAppUser by Index.3
+            If ((FindErr) or (sCompanyGUID ne WebAppUser.CompanyGUID)) Move True to bDone
+            If (not(bDone)) Begin
+                Reread
+                  Move 0 to WebAppUser.isActive
+                  SaveRecord WebAppUser
+                Unlock
+            End            
+        Until (bDone)
+        
+        Move (SizeOfArray(userList.ReturnValue) -1) to iCount
+        Send Rebuild_Constraints to oUserDDNoActiveCheck
+        
+        For i from 0 to iCount
+            Send Clear to oUserDDNoActiveCheck
+            Move (trim(userList.ReturnValue[i].Email)) to WebAppUser.LoginName
+            Send Find of oUserDDNoActiveCheck EQ 1
+//            Find eq WebAppUser by Index.1
+            If (not(Found)) Begin
+                Set Field_Changed_Value of oUserDDNoActiveCheck Field WebAppUser.LoginName to userList.ReturnValue[i].Email
+            End
+            Set Field_Changed_Value of oUserDDNoActiveCheck Field WebAppUser.CompanyGUID to sCompanyGUID
+            Set Field_Changed_Value of oUserDDNoActiveCheck Field WebAppUser.BUGUID to sBUGUID
+            Set Field_Changed_Value of oUserDDNoActiveCheck Field WebAppUser.FirstName to userList.ReturnValue[i].FName
+            Set Field_Changed_Value of oUserDDNoActiveCheck Field WebAppUser.LastName to userList.ReturnValue[i].LName
+            Set Field_Changed_Value of oUserDDNoActiveCheck Field WebAppUser.UserGUID to userList.ReturnValue[i].UserGUID
+            Set Field_Changed_Value of oUserDDNoActiveCheck Field WebAppUser.AppID to userList.ReturnValue[i].AppId
+            Set Field_Changed_Value of oUserDDNoActiveCheck Field WebAppUser.IsActive to 1
+            Send Request_Save to oUserDDNoActiveCheck
+        Loop
+    End_Procedure
+
+    Procedure OnShow
+        tWSCompanyUserListResult theList
+        //Get psUserGUID of ghoWebSessionManager to sUserGUID
+        //Send Rebuild_Constraints to oUserDD
+        Send EnableEdit False
+        Get userList of oApplication to theList
+        If (theList.KeyWord eq "Success") Begin
+            Send rebuildUserList theList
+        End
+        Send Rebuild_Constraints to oUserDD
+        Send MoveToFirstRow to oUserList
+        
+    End_Procedure
+End_Object

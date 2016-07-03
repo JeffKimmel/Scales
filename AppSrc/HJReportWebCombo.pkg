@@ -1,0 +1,122 @@
+Use cWebCombo.pkg
+Open daireports
+Register_Object oDashboardDD
+
+Class HJReportWebCombo is a cWebCombo
+    
+    Procedure Construct_Object
+        Property Integer piRow
+        Property Integer piColumn        
+        Forward Send Construct_Object
+        {WebProperty = True}
+        Property String psReportType
+        {WebProperty = True}
+        Property String psReportDuration
+        {WebProperty = True}
+        Property Integer piReportSpanRow        
+    End_Procedure
+
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+        Set psReportDuration to "Day"
+        Set piReportSpanRow to 0        
+    End_Procedure
+    
+    Procedure defaultMe
+        Integer iRow iCol iReportSpan 
+        String sValue sDefault sReportType sReportDuration userGUID 
+        tReportStruct thisStructure
+
+        Get psUserGUID of ghoWebSessionManager to userGUID       
+        WebGet psReportType to sReportType                
+        Get piRow to iRow
+        Get piColumn to iCol
+
+        Get DashboardData of oDashboardDD userGUID iRow iCOl to thisStructure 
+                
+        WebSet psReportDuration to thisStructure.reportDuration
+        WebSet piReportSpanRow to thisStructure.spanRow
+        WebSet psValue to (Trim(thisStructure.reportLink))
+    End_Procedure
+      
+    Function reportListStruct Returns tReportStruct[]
+        tReportStruct[] retStruct
+        String sXML
+        Get ptReportList of oWebApp to retStruct
+        If (SizeOfArray(retStruct) > 0) Begin
+            Function_Return retStruct
+        End
+        Integer item
+        Move 0 to item 
+        Clear DAIReports
+        //Move "NewDash" to DAIReports.ReportType
+        Move "TicketDash" to DAIReports.ReportType
+        Find gt DAIReports by Index.2
+
+//        While ((Found) and (DAIReports.ReportType = "NewDash"))            
+        While ((Found) and (DAIReports.ReportType = "TicketDash"))            
+            Move (Trim(DAIReports.DashboardLink)) to retStruct[item].reportLink
+            Move (Trim(DAIReports.ReportName)) to retStruct[item].reportName
+            Find gt DAIReports by Index.2
+            Increment item
+        Loop
+        Set ptReportList of oWebApp to retStruct
+        Function_Return retStruct
+    End_Function
+
+    Procedure FillMe
+        Integer iCount iPos iRow iCOl iReportSpan i
+        String sValue sDefault sReportType sReportDuration userGUID 
+        tReportStruct thisStructure
+        tReportStruct [] reportList
+        
+        Get piRow to iRow
+        Get piColumn to iCol
+        Get psUserGUID of ghoWebSessionManager to userGUID
+        
+        Get DashboardData of oDashboardDD userGUID iRow iCOl to thisStructure 
+        Move thisStructure.reportLink to sDefault
+        WebSet piReportSpanRow to thisStructure.spanRow
+        Get reportListStruct to reportList
+        Move (SizeOfArray(reportList)) to iCount
+        Decrement iCount
+        For i from 0 to iCount
+            If (sDefault = "") Move reportList[i].reportLink to sDefault
+            Send AddComboItem reportList[i].reportLink reportList[i].reportName    
+        Loop
+
+        WebSet psValue to sDefault
+//        Move sReportType to Reports.Type
+//        Find gt Reports by Index.1
+//        While ((Found) and (sReportType = Reports.Type))
+//             Move ("<Report>" + (Trim(Reports.DashboardName)) + "</Report><URL>" + (Trim(Reports.DashboardURL))  + "</URL>") to sValue
+//             Send AddComboItem sValue  (Trim(Reports.DashboardName))
+//            Find gt Reports by Index.1
+//        Loop        
+    End_Procedure
+    
+    Procedure SaveMe
+        Integer iRow iCol iReportSpan
+        String sVal sReportType sReportDuration userGUID
+        Get piRow to iRow
+        Get piColumn to iCol
+        WebGet psValue to sVal
+        WebGet psReportType to sReportType
+        WebGet psReportDuration to sReportDuration
+        WebGet piReportSpanRow to iReportSpan
+        
+        Get psUserGUID of ghoWebSessionManager to userGUID
+        Send SaveDashboard of oDashboardDD userGUID iRow iCol "" sVal sReportDuration iReportSpan
+//        Get pSessionUserProfile of ghoWebSessionManager to userProfile
+//        If (sReportType = "HeavyJob" or sReportType = "") Begin
+//            Send SaveHeavyJobReport of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId iRow iCol sVal    
+//        End
+//        Else If (sReportType = "GPS") Begin
+//            Send SaveGPSReport of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId iRow iCol sVal    
+//        End
+//        Else If (sReportType = "Ticket") Begin
+//            Send SaveTicketReport of oDashboardDD userProfile.UsrInfo.CompanyId userProfile.UsrInfo.UserId iRow iCol sVal sReportDuration iReportSpan
+//        End        
+    End_Procedure
+
+End_Class

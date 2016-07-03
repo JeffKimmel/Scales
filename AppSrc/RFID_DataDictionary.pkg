@@ -1,0 +1,37 @@
+Use DataDict.pkg
+Open SysParams
+Class RFID_DataDictionary is a DataDictionary
+    
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        Set Add_System_File to SysParams.File_Number DD_Lock_on_New_Save
+    End_Procedure
+
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+    End_Procedure
+
+    Function genGUID Returns String
+        String sTest sRetVal
+        Move "DMK" to sTest
+        If (Trim(SysParams.ASCIITest) eq "DMK") Begin
+            Move "LHK" to sTest
+        End
+        Lock
+         Move sTest to SysParams.ASCIITest  //Force a change so save goes through!!!
+         SaveRecord SysParams               //This causes the stored proc to gen a new GUID
+         Move SysParams.GeneratedGUID to sRetVal  //Do this is in a locked state so no re-use of GUID possible...   
+        Unlock
+        Function_Return (Lowercase(sRetVal))  //Do this is in a locked state so no re-use of GUID possible...   
+    End_Function
+    
+    Function RequestValidateAndSave Returns Boolean
+        Boolean bErr
+        Get Request_Validate to bErr
+        If not bErr Begin
+            Send Request_Save
+            Move (Err) to bErr
+        End
+        Function_Return bErr
+    End_Function
+End_Class

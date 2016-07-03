@@ -1,0 +1,121 @@
+// cAuthenticationService.pkg
+// Class:   cAuthenticationService
+// Created: 06/20/2013 10:30:23.828
+// 
+
+Use cClientWebService.pkg
+
+// 
+// Class:   cAuthenticationService
+// 
+// Interface:
+// 
+// Function RequestToken string llEncryptedLoginName Returns string
+// Function Authenticate string llLoginName string llToken Returns string
+// 
+// 
+
+Class cAuthenticationService is a cClientWebService
+
+    Procedure Construct_object
+        Forward send Construct_object
+        Set psServiceLocation     to 'http://vectrtest.com/WebServices/Integration/AuthenticationService.svc'
+        Set psWSDLLocation        to 'http://vectrtest.com/WebServices/Integration/AuthenticationService.svc?singleWsdl'
+    End_Procedure // Construct_object
+
+    // 
+    // Function RequestToken
+    // 
+    // 
+    Function RequestToken string llEncryptedLoginName Returns string
+        string llRequestTokenResult
+        tSoapParameter[] spParameters
+        tSoapParameter[] spReturnParameters
+        integer eStatus
+
+        Send Reset
+        Set psSOAPAction           to "http://tempuri.org/IAuthenticationService/RequestToken"
+        Set peSoapStyle            to ssDocument
+
+        Set psRequestNSURI         to "http://tempuri.org/"
+        Set peSoapEncoding         to seLiteral
+        Set psMethodRequest        to "RequestToken"
+        Set pbRequestBare          to false
+        Set pbRequestOnly          to false
+
+        Set psResponseNSURI        to "http://tempuri.org/"
+        Set peResponseSoapEncoding to seLiteral
+        Set psMethodResponse       to "RequestTokenResponse"
+        Set pbResponseBare         to false
+
+        // Parameter 0
+        Get DefineParameter xsString 0 1 "EncryptedLoginName" "http://tempuri.org/" to spParameters[0].SoapParamDef 
+        ValueTreeSerializeParameter llEncryptedLoginName to spParameters[0].ValueTree
+
+        Set pspParameters to spParameters
+
+        // Return Parameter
+        Get DefineParameter xsString 0 1 "RequestTokenResult" "http://tempuri.org/" to spReturnParameters[0].SoapParamDef
+        Set pspReturnParameters to spReturnParameters
+
+        Get DoInvokeService to eStatus
+        If (eStatus=wssOK) Begin
+            Get pspReturnParameters   to spReturnParameters
+            ValueTreeDeserializeParameter spReturnParameters[0].ValueTree to llRequestTokenResult
+        End
+        Else Begin
+            Send LastError
+        End
+
+        Function_return llRequestTokenResult
+    End_Function // RequestToken
+
+    // 
+    // Function Authenticate
+    // 
+    // 
+    Function Authenticate String llToken Returns String
+        string llAuthenticateResult
+        tSoapParameter[] spParameters
+        tSoapParameter[] spReturnParameters
+        integer eStatus
+
+        Send Reset
+        Set psSOAPAction           to "http://tempuri.org/IAuthenticationService/Authenticate"
+        Set peSoapStyle            to ssDocument
+
+        Set psRequestNSURI         to "http://tempuri.org/"
+        Set peSoapEncoding         to seLiteral
+        Set psMethodRequest        to "Authenticate"
+        Set pbRequestBare          to false
+        Set pbRequestOnly          to false
+
+        Set psResponseNSURI        to "http://tempuri.org/"
+        Set peResponseSoapEncoding to seLiteral
+        Set psMethodResponse       to "AuthenticateResponse"
+        Set pbResponseBare         to false
+
+        // Parameter 0
+        Get DefineParameter xsString 0 1 "Token" "http://tempuri.org/" to spParameters[0].SoapParamDef 
+        ValueTreeSerializeParameter llToken to spParameters[0].ValueTree
+
+        Set pspParameters to spParameters
+
+        // Return Parameter
+        Get DefineParameter xsString 0 1 "AuthenticateResult" "http://tempuri.org/" to spReturnParameters[0].SoapParamDef
+        Set pspReturnParameters to spReturnParameters
+
+        Get DoInvokeService to eStatus
+        If (eStatus=wssOK) Begin
+            Get pspReturnParameters   to spReturnParameters
+            ValueTreeDeserializeParameter spReturnParameters[0].ValueTree to llAuthenticateResult
+        End
+        Else Begin
+            Send LastError
+        End
+
+        Function_return llAuthenticateResult
+    End_Function // Authenticate
+
+End_Class
+

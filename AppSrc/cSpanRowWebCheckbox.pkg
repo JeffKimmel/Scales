@@ -1,0 +1,56 @@
+Use cWebCheckbox.pkg
+
+Class cSpanRowWebCheckbox is a cWebCheckbox
+    
+    Procedure Construct_Object
+        Forward Send Construct_Object
+        Set pbServerOnChange to True
+//        Set psCaption to "Span"
+//        {WebProperty = true}
+//        Property Integer piReportCol1Combo
+//        {WebProperty = true}
+//        Property Integer piReportCol1Duration
+//        {WebProperty = true}
+//        Property Integer piReportCol2Combo
+//        {WebProperty = true}
+//        Property Integer piReportCol2Duration                
+    End_Procedure
+
+    Procedure End_Construct_Object
+        Forward Send End_Construct_Object
+    End_Procedure
+
+//    Procedure OnChange
+//        Integer iReportCol1Combo iReportCol2Combo iCol1Duration iCol2Duration  iVal
+//        WebGet psValue to iVal
+//        WebGet piReportCol1Combo to iReportCol1Combo
+//        WebGet piReportCol2Combo to iReportCol2Combo
+//        WebGet piReportCol1Duration to iCol1Duration
+//        WebGet piReportCol2Duration to iCol2Duration
+//        
+//        WebSet piReportSpanRow of iReportCol1Combo to iVal
+//        If ((iReportCol2Combo = 0) or (iCol2Duration = 0)) Begin
+//            Procedure_Return
+//        End
+//        If (iVal = 1) Begin
+//            WebSet pbRender  of iReportCol2Combo  to False    
+//            WebSet pbRender of iCol2Duration to  False            
+//                        
+//            WebSet piColumnSpan  of iReportCol1Combo to 5
+//            WebSet piColumnIndex of  iCol1Duration to 6
+//            WebSet piColumnSpan of  iCol1Duration to 2
+//            WebSet piColumnIndex to 9
+//        End
+//        Else Begin
+//            WebSet pbRender of iReportCol2Combo to True
+//            WebSet pbRender of iCol2Duration to True
+//            
+//            WebSet piColumnSpan  of iReportCol1Combo to 3
+//            WebSet piColumnIndex of  iCol1Duration to 3
+//            WebSet piColumnSpan of  iCol1Duration to 1
+//            WebSet piColumnIndex to 4                        
+//        End
+//        
+//    End_Procedure
+
+End_Class
